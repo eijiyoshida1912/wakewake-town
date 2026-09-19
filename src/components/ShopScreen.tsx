@@ -1,6 +1,9 @@
 'use client'
 
+import { useState } from 'react'
+import { ITEM_CATEGORIES, ItemCategory } from '@/lib/items'
 import { getShopItems } from '@/lib/shop'
+import CategoryTabs from './CategoryTabs'
 
 interface ShopScreenProps {
   coins: number
@@ -13,7 +16,21 @@ interface ShopScreenProps {
 }
 
 export default function ShopScreen({ coins, items, purchasedItem, onBuy, onBack }: ShopScreenProps) {
-  const shopItems = getShopItems(items)
+  const [selected, setSelected] = useState<ItemCategory>(ITEM_CATEGORIES[0].id)
+
+  const allSoldOut = getShopItems(items).length === 0
+  const shopItems = getShopItems(items, selected)
+  const tabs = ITEM_CATEGORIES.map(category => {
+    const remaining = getShopItems(items, category.id).length
+    return {
+      id: category.id,
+      emoji: category.emoji,
+      label: category.label,
+      badge: `のこり ${remaining}`,
+      ariaLabel: `${category.label} のこり ${remaining}`,
+    }
+  })
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-100 to-orange-100 flex flex-col">
       <div className="bg-white/80 backdrop-blur px-4 py-3 flex justify-between items-center shadow-sm">
@@ -33,37 +50,50 @@ export default function ShopScreen({ coins, items, purchasedItem, onBuy, onBack 
           </p>
         )}
 
-        {shopItems.length === 0 ? (
+        {allSoldOut ? (
           <p className="w-full rounded-2xl border-2 border-yellow-300 bg-white p-6 text-center text-lg font-bold text-yellow-600">
             🎉 ぜんぶそろったよ！町がにぎやかになったね
           </p>
         ) : (
-          <ul className="flex w-full flex-col gap-3">
-            {shopItems.map(item => {
-              const shortage = item.price - coins
-              return (
-                <li
-                  key={item.name}
-                  className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-white p-3 shadow"
-                >
-                  <span className="text-4xl">{item.emoji}</span>
-                  <div className="flex-1">
-                    <p className="font-bold text-gray-700">{item.name}</p>
-                    <p className="text-sm font-bold text-amber-600">🪙 {item.price}</p>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label={`${item.name}をかう`}
-                    disabled={shortage > 0}
-                    onClick={() => onBuy(item.name)}
-                    className="min-w-24 rounded-xl bg-green-400 px-4 py-3 text-lg font-bold text-white shadow transition-all hover:bg-green-500 active:scale-95 disabled:bg-gray-200 disabled:text-gray-400"
-                  >
-                    {shortage > 0 ? `あと ${shortage}` : 'かう'}
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
+          <>
+            <div className="w-full">
+              <CategoryTabs label="おみせのカテゴリ" tabs={tabs} selected={selected} onSelect={setSelected} />
+            </div>
+            <div role="tabpanel" className="w-full">
+              {shopItems.length === 0 ? (
+                <p className="w-full rounded-2xl border-2 border-yellow-300 bg-white p-6 text-center font-bold text-yellow-600">
+                  ✨ このコーナーはぜんぶそろったよ！
+                </p>
+              ) : (
+                <ul className="flex w-full flex-col gap-3">
+                  {shopItems.map(item => {
+                    const shortage = item.price - coins
+                    return (
+                      <li
+                        key={item.name}
+                        className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-white p-3 shadow"
+                      >
+                        <span className="text-4xl">{item.emoji}</span>
+                        <div className="flex-1">
+                          <p className="font-bold text-gray-700">{item.name}</p>
+                          <p className="text-sm font-bold text-amber-600">🪙 {item.price}</p>
+                        </div>
+                        <button
+                          type="button"
+                          aria-label={`${item.name}をかう`}
+                          disabled={shortage > 0}
+                          onClick={() => onBuy(item.name)}
+                          className="min-w-24 rounded-xl bg-green-400 px-4 py-3 text-lg font-bold text-white shadow transition-all hover:bg-green-500 active:scale-95 disabled:bg-gray-200 disabled:text-gray-400"
+                        >
+                          {shortage > 0 ? `あと ${shortage}` : 'かう'}
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
+          </>
         )}
 
         <button

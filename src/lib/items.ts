@@ -1,23 +1,84 @@
+export type ItemCategory = 'furniture' | 'plants' | 'toys' | 'food' | 'vehicles'
+
+/** アイテムのカテゴリ。町のかざりとお店の、タブの順になる */
+export const ITEM_CATEGORIES: { id: ItemCategory; label: string; emoji: string }[] = [
+  { id: 'furniture', label: 'かぐ', emoji: '🛋️' },
+  { id: 'plants', label: 'しょくぶつ', emoji: '🌿' },
+  { id: 'toys', label: 'おもちゃ', emoji: '🧸' },
+  { id: 'food', label: 'たべもの', emoji: '🍰' },
+  { id: 'vehicles', label: 'のりもの', emoji: '🚗' },
+]
+
 export interface ShopItem {
   name: string
   emoji: string
   /** お店で買うときの値段（コイン） */
   price: number
+  category: ItemCategory
 }
 
 /**
- * 町にかざれるアイテム。並び順が、ホームの「町のかざり」の場所の順になる。
- * 値段は、小物は安く、大きな家具は高くしてある（1問で10〜30コインもらえる）。
+ * 町にかざれるアイテム（5カテゴリ × 10個）。カテゴリごとにまとめて並べ、
+ * その順番が、ホームの「町のかざり」の場所の順になる。
+ * 値段は 30〜200。1問で 10〜30 コインもらえるので、安いものはすぐ、高いものは長く遊んで手に入る。
+ * 先頭の8つは最初からあったアイテム。保存データに名前が残っているので、名前は変えないこと。
  */
 export const SHOP_ITEMS: ShopItem[] = [
-  { name: 'いす', emoji: '🪑', price: 80 },
-  { name: 'ランプ', emoji: '🪔', price: 50 },
-  { name: 'クッション', emoji: '🛋️', price: 50 },
-  { name: '観葉植物', emoji: '🌿', price: 60 },
-  { name: 'ぬいぐるみ', emoji: '🧸', price: 40 },
-  { name: 'ぼうし', emoji: '🎩', price: 30 },
-  { name: 'テーブル', emoji: '🪵', price: 100 },
-  { name: 'フラワーポット', emoji: '🌸', price: 30 },
+  // かぐ
+  { name: 'いす', emoji: '🪑', price: 80, category: 'furniture' },
+  { name: 'ランプ', emoji: '🪔', price: 50, category: 'furniture' },
+  { name: 'クッション', emoji: '🛋️', price: 50, category: 'furniture' },
+  { name: 'テーブル', emoji: '🪵', price: 100, category: 'furniture' },
+  { name: 'ベッド', emoji: '🛏️', price: 100, category: 'furniture' },
+  { name: 'とけい', emoji: '🕰️', price: 50, category: 'furniture' },
+  { name: 'でんわ', emoji: '☎️', price: 40, category: 'furniture' },
+  { name: 'テレビ', emoji: '📺', price: 150, category: 'furniture' },
+  { name: 'ラジオ', emoji: '📻', price: 60, category: 'furniture' },
+  { name: 'ほんだな', emoji: '📚', price: 80, category: 'furniture' },
+  // しょくぶつ
+  { name: '観葉植物', emoji: '🌿', price: 60, category: 'plants' },
+  { name: 'フラワーポット', emoji: '🌸', price: 30, category: 'plants' },
+  { name: 'ひまわり', emoji: '🌻', price: 30, category: 'plants' },
+  { name: 'チューリップ', emoji: '🌷', price: 30, category: 'plants' },
+  { name: 'バラ', emoji: '🌹', price: 40, category: 'plants' },
+  { name: 'ハイビスカス', emoji: '🌺', price: 50, category: 'plants' },
+  { name: 'サボテン', emoji: '🌵', price: 30, category: 'plants' },
+  { name: 'やしのき', emoji: '🌴', price: 80, category: 'plants' },
+  { name: 'もみのき', emoji: '🌲', price: 60, category: 'plants' },
+  { name: 'クローバー', emoji: '🍀', price: 30, category: 'plants' },
+  // おもちゃ
+  { name: 'ぬいぐるみ', emoji: '🧸', price: 40, category: 'toys' },
+  { name: 'ぼうし', emoji: '🎩', price: 30, category: 'toys' },
+  { name: 'ボール', emoji: '⚽', price: 30, category: 'toys' },
+  { name: 'ふうせん', emoji: '🎈', price: 30, category: 'toys' },
+  { name: 'ロボット', emoji: '🤖', price: 80, category: 'toys' },
+  { name: 'ゲーム', emoji: '🎮', price: 100, category: 'toys' },
+  { name: 'ピアノ', emoji: '🎹', price: 150, category: 'toys' },
+  { name: 'ギター', emoji: '🎸', price: 80, category: 'toys' },
+  { name: 'パズル', emoji: '🧩', price: 50, category: 'toys' },
+  { name: 'ぼうえんきょう', emoji: '🔭', price: 60, category: 'toys' },
+  // たべもの
+  { name: 'ケーキ', emoji: '🎂', price: 100, category: 'food' },
+  { name: 'アイス', emoji: '🍦', price: 40, category: 'food' },
+  { name: 'ドーナツ', emoji: '🍩', price: 30, category: 'food' },
+  { name: 'ピザ', emoji: '🍕', price: 50, category: 'food' },
+  { name: 'おにぎり', emoji: '🍙', price: 30, category: 'food' },
+  { name: 'ハンバーガー', emoji: '🍔', price: 60, category: 'food' },
+  { name: 'スイカ', emoji: '🍉', price: 60, category: 'food' },
+  { name: 'いちご', emoji: '🍓', price: 30, category: 'food' },
+  { name: 'りんご', emoji: '🍎', price: 30, category: 'food' },
+  { name: 'プリン', emoji: '🍮', price: 40, category: 'food' },
+  // のりもの
+  { name: 'くるま', emoji: '🚗', price: 60, category: 'vehicles' },
+  { name: 'バス', emoji: '🚌', price: 80, category: 'vehicles' },
+  { name: 'でんしゃ', emoji: '🚃', price: 100, category: 'vehicles' },
+  { name: 'ひこうき', emoji: '✈️', price: 150, category: 'vehicles' },
+  { name: 'ふね', emoji: '⛵', price: 80, category: 'vehicles' },
+  { name: 'ロケット', emoji: '🚀', price: 200, category: 'vehicles' },
+  { name: 'じてんしゃ', emoji: '🚲', price: 30, category: 'vehicles' },
+  { name: 'ヘリコプター', emoji: '🚁', price: 120, category: 'vehicles' },
+  { name: 'きゅうきゅうしゃ', emoji: '🚑', price: 50, category: 'vehicles' },
+  { name: 'しょうぼうしゃ', emoji: '🚒', price: 50, category: 'vehicles' },
 ]
 
 export const ITEMS = SHOP_ITEMS.map(item => item.name)

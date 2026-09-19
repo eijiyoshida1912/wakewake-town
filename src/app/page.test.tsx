@@ -93,10 +93,10 @@ describe('お店と町のかざり（ページ全体）', () => {
   const seed = (coins: number, items: string[] = []) =>
     localStorage.setItem('wakewake-town-save', JSON.stringify({ coins, items, problemsSolved: 0 }))
 
-  it('ホームの町のかざりは、最初はすべて「？」で「0 / 8」', () => {
+  it('ホームの町のかざりは、最初はすべて「？」で「0 / 50」（かぐのタブ: 10個）', () => {
     render(<Home />)
-    expect(screen.getByText('0 / 8')).toBeDefined()
-    expect(screen.getAllByText('？')).toHaveLength(8)
+    expect(screen.getByText('0 / 50')).toBeDefined()
+    expect(screen.getAllByText('？')).toHaveLength(10)
   })
 
   it('コインで買えるものがあるときだけ、ホームの「おみせ」に「かえるものがあるよ！」が出る', () => {
@@ -109,22 +109,31 @@ describe('お店と町のかざり（ページ全体）', () => {
     expect(screen.getByText(/かえるものがあるよ/)).toBeDefined()
   })
 
-  it('おみせでぼうしを買う → コインが減る → もどると、町のかざりにぼうしが並ぶ', () => {
+  it('おみせでぼうしを買う → コインが減る → もどると、町のかざり（おもちゃ）にぼうしが並ぶ', () => {
     seed(100)
     render(<Home />)
     fireEvent.click(screen.getByRole('button', { name: /おみせ/ }))
     expect(screen.getByRole('heading', { name: /おみせ/ })).toBeDefined()
 
+    fireEvent.click(screen.getByRole('tab', { name: /^おもちゃ / }))
     fireEvent.click(screen.getByRole('button', { name: 'ぼうしをかう' }))
     expect(screen.getByText(/ぼうしをかったよ！/)).toBeDefined()
     expect(screen.queryByRole('button', { name: 'ぼうしをかう' })).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: /もどる/ }))
     expect(screen.getByRole('button', { name: /おねがいをきく/ })).toBeDefined()
+    fireEvent.click(screen.getByRole('tab', { name: /^おもちゃ / }))
     expect(screen.getAllByRole('listitem').map(li => li.textContent)).toContain('🎩ぼうし')
-    expect(screen.getByText('1 / 8')).toBeDefined()
+    expect(screen.getByText('1 / 50')).toBeDefined()
     // コインは、ヘッダーと「もっているコイン」の2か所に出る
     expect(screen.getAllByText(/🪙\s*70/)).toHaveLength(2)
     expect(JSON.parse(localStorage.getItem('wakewake-town-save') ?? 'null')).toMatchObject({ coins: 70, items: ['ぼうし'] })
+  })
+
+  it('今までの保存データ（8つのアイテム）は、そのまま使える（いす・ぼうしを持っている）', () => {
+    seed(0, ['いす', 'ぼうし'])
+    render(<Home />)
+    expect(screen.getByText('2 / 50')).toBeDefined()
+    expect(screen.getAllByRole('listitem').map(li => li.textContent)).toContain('🪑いす')
   })
 })

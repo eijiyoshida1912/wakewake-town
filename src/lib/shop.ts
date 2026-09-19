@@ -1,4 +1,4 @@
-import { SHOP_ITEMS, ShopItem } from './items'
+import { SHOP_ITEMS, ShopItem, ItemCategory } from './items'
 
 export type BuyResult =
   | { ok: true; coins: number; items: string[] }
@@ -20,9 +20,14 @@ export function buyItem(coins: number, items: string[], name: string): BuyResult
   return { ok: true, coins: coins - item.price, items: [...items, name] }
 }
 
-/** お店に並ぶもの: まだ持っていないアイテムを、安い順に（同じ値段は町のかざりの順） */
-export function getShopItems(items: string[]): ShopItem[] {
-  return SHOP_ITEMS.filter(item => !items.includes(item.name)).sort((a, b) => a.price - b.price)
+/**
+ * お店に並ぶもの: まだ持っていないアイテムを、安い順に（同じ値段は町のかざりの順）。
+ * category を渡すと、そのカテゴリのものだけになる。
+ */
+export function getShopItems(items: string[], category?: ItemCategory): ShopItem[] {
+  return SHOP_ITEMS.filter(item => !items.includes(item.name) && (category === undefined || item.category === category)).sort(
+    (a, b) => a.price - b.price,
+  )
 }
 
 /** 持っているコインで、お店のアイテムを何か1つでも買えるか */
