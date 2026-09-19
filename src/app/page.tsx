@@ -5,6 +5,7 @@ import TownHome from '@/components/TownHome'
 import DifficultySelect from '@/components/DifficultySelect'
 import RequestScene from '@/components/RequestScene'
 import LongDivisionGame from '@/components/LongDivisionGame'
+import RewardScreen from '@/components/RewardScreen'
 import MilestoneScreen from '@/components/MilestoneScreen'
 
 export default function Home() {
@@ -16,6 +17,7 @@ export default function Home() {
     handleSelectDifficulty,
     handleAccept,
     handleComplete,
+    handleRewardDone,
     handleMilestoneDone,
   } = useGameState()
 
@@ -33,6 +35,15 @@ export default function Home() {
     case 'division':
       if (!gameState.currentProblem) return null
       return <LongDivisionGame problem={gameState.currentProblem} onComplete={handleComplete} />
+    case 'reward':
+      if (!gameState.rewardItem || !gameState.currentProblem) return null
+      return (
+        <RewardScreen
+          item={gameState.rewardItem}
+          residentId={gameState.currentProblem.residentId}
+          onDone={handleRewardDone}
+        />
+      )
     case 'milestone':
       return (
         <MilestoneScreen

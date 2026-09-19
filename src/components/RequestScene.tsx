@@ -1,9 +1,8 @@
 'use client'
 
 import { Problem } from '@/lib/types'
+import { RESIDENTS } from '@/lib/residents'
 
-const RESIDENT_EMOJI: Record<string, string> = { cat: '🐱', rabbit: '🐰', bear: '🐻' }
-const RESIDENT_NAMES: Record<string, string> = { cat: 'ネコさん', rabbit: 'ウサギさん', bear: 'クマさん' }
 const BG_COLORS: Record<string, string> = {
   cat: 'bg-orange-50 border-orange-300',
   rabbit: 'bg-pink-50 border-pink-300',
@@ -20,8 +19,8 @@ export default function RequestScene({ problem, onAccept }: RequestSceneProps) {
     <div className="min-h-screen bg-gradient-to-b from-green-100 to-blue-50 flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm flex flex-col items-center gap-6">
         <div className="flex flex-col items-center gap-2">
-          <div className="text-7xl animate-bounce">{RESIDENT_EMOJI[problem.residentId]}</div>
-          <p className="text-gray-600 font-bold">{RESIDENT_NAMES[problem.residentId]}</p>
+          <div className="text-7xl animate-bounce">{RESIDENTS[problem.residentId].emoji}</div>
+          <p className="text-gray-600 font-bold">{RESIDENTS[problem.residentId].name}</p>
         </div>
         <div className={`w-full rounded-3xl border-2 p-5 shadow-md ${BG_COLORS[problem.residentId]}`}>
           <p className="text-gray-700 text-base md:text-lg leading-relaxed whitespace-pre-line text-center">

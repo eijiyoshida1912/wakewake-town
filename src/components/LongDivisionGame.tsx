@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { Problem } from '@/lib/types'
 import { DIFFICULTIES } from '@/lib/difficulty'
+import { RESIDENTS } from '@/lib/residents'
 import { generateSteps, getBoardSnapshot } from '@/lib/divisionLogic'
 import LongDivisionBoard from './LongDivisionBoard'
 import AssistedPlay from './AssistedPlay'
@@ -11,17 +12,6 @@ import ChallengeBoard from './ChallengeBoard'
 interface LongDivisionGameProps {
   problem: Problem
   onComplete: () => void
-}
-
-const RESIDENT_EMOJI: Record<string, string> = {
-  cat: '🐱',
-  rabbit: '🐰',
-  bear: '🐻',
-}
-const RESIDENT_NAMES: Record<string, string> = {
-  cat: 'ネコさん',
-  rabbit: 'ウサギさん',
-  bear: 'クマさん',
 }
 
 export default function LongDivisionGame({ problem, onComplete }: LongDivisionGameProps) {
@@ -37,9 +27,9 @@ export default function LongDivisionGame({ problem, onComplete }: LongDivisionGa
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-amber-50 flex flex-col">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 py-3 flex items-center gap-3">
-        <span className="text-2xl">{RESIDENT_EMOJI[problem.residentId]}</span>
+        <span className="text-2xl">{RESIDENTS[problem.residentId].emoji}</span>
         <div className="flex-1">
-          <p className="text-xs text-gray-500">{RESIDENT_NAMES[problem.residentId]}のおねがい</p>
+          <p className="text-xs text-gray-500">{RESIDENTS[problem.residentId].name}のおねがい</p>
           <p className="text-sm font-bold text-gray-700">{problem.dividend} ÷ {problem.divisor} を計算しよう！</p>
         </div>
         <span className="rounded-full border border-amber-300 bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
@@ -51,7 +41,7 @@ export default function LongDivisionGame({ problem, onComplete }: LongDivisionGa
         {solved ? (
           /* Completion screen */
           <div className="flex flex-col items-center gap-4 py-6 w-full">
-            <div className="text-6xl animate-bounce">{RESIDENT_EMOJI[problem.residentId]}</div>
+            <div className="text-6xl animate-bounce">{RESIDENTS[problem.residentId].emoji}</div>
             <div className="bg-white rounded-3xl shadow-lg p-6 text-center border-2 border-yellow-300 w-full">
               <p className="text-2xl font-bold text-yellow-600 mb-2">🎉 できた！</p>
               <p className="text-lg text-gray-700">

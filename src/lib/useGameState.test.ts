@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useGameState } from './useGameState'
-import { getProblemsByDifficulty } from './problems'
+import { getProblemsByDifficulty, ITEMS } from './problems'
 import { Difficulty } from './types'
 
 const STORAGE_KEY = 'wakewake-town-save'
@@ -187,5 +187,94 @@ describe('useGameState: localStorage への保存と復元', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ coins: '100', items: 'いす', problemsSolved: 2 }))
     const { result } = renderHook(() => useGameState())
     expect(result.current.gameState).toMatchObject({ coins: 0, items: [], problemsSolved: 2 })
+  })
+})
+
+describe('useGameState: アイテムをもらったときのお祝い', () => {
+  it('アイテムをもらうと、お祝い画面（reward）に進み、何をもらったかが分かる', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { result } = renderHook(() => useGameState())
+    playRound(result, 'easy')
+    expect(result.current.gameState).toMatchObject({
+      screen: 'reward',
+      rewardItem: 'いす',
+      items: ['いす'],
+      coins: 10,
+    })
+  })
+
+  it('お祝いでも、コインは難易度どおりに増える（まあまあなら 15）', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { result } = renderHook(() => useGameState())
+    playRound(result, 'normal')
+    expect(result.current.gameState.screen).toBe('reward')
+    expect(result.current.gameState.coins).toBe(15)
+  })
+
+  it('お祝いの「やったー」でホームに戻り、お祝いの内容は消える', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { result } = renderHook(() => useGameState())
+    playRound(result, 'easy')
+    act(() => result.current.handleRewardDone())
+    expect(result.current.gameState.screen).toBe('home')
+    expect(result.current.gameState.rewardItem).toBeNull()
+    expect(result.current.gameState.items).toEqual(['いす'])
+  })
+
+  it('アイテムをもらえなかったときは、お祝いを挟まずホームに戻る', () => {
+    const { result } = renderHook(() => useGameState())
+    playRound(result, 'easy')
+    expect(result.current.gameState.screen).toBe('home')
+    expect(result.current.gameState.rewardItem).toBeNull()
+  })
+
+  it('5問目でアイテムをもらうと、お祝いのあとに節目画面が出る', () => {
+    const { result } = renderHook(() => useGameState())
+    for (let i = 1; i <= 4; i++) playRound(result, 'easy')
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    playRound(result, 'easy')
+    expect(result.current.gameState.screen).toBe('reward')
+    expect(result.current.gameState.problemsSolved).toBe(5)
+
+    act(() => result.current.handleRewardDone())
+    expect(result.current.gameState.screen).toBe('milestone')
+    act(() => result.current.handleMilestoneDone())
+    expect(result.current.gameState.screen).toBe('home')
+  })
+
+  it('すべてのアイテムを持っているときは、乱数が当たってもお祝いは出ない', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ coins: 0, items: [...ITEMS], problemsSolved: 0 }))
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { result } = renderHook(() => useGameState())
+    playRound(result, 'easy')
+    expect(result.current.gameState.screen).toBe('home')
+    expect(result.current.gameState.rewardItem).toBeNull()
+    expect(result.current.gameState.items).toHaveLength(ITEMS.length)
+  })
+
+  it('お祝い画面以外で「やったー」を呼んでも、何も起きない（連打対策）', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleRewardDone())
+    expect(result.current.gameState.screen).toBe('home')
+
+    playRound(result, 'easy')
+    act(() => {
+      result.current.handleRewardDone()
+      result.current.handleRewardDone()
+    })
+    expect(result.current.gameState.screen).toBe('home')
+  })
+
+  it('連打しても、節目画面を飛ばさない（5問目のお祝いで2回呼んでも節目が出る）', () => {
+    const { result } = renderHook(() => useGameState())
+    for (let i = 1; i <= 4; i++) playRound(result, 'easy')
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    playRound(result, 'easy')
+    act(() => {
+      result.current.handleRewardDone()
+      result.current.handleRewardDone()
+    })
+    expect(result.current.gameState.screen).toBe('milestone')
   })
 })

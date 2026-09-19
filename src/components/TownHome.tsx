@@ -1,11 +1,7 @@
 'use client'
 
 import { GameState } from '@/lib/types'
-
-const ITEM_EMOJI: Record<string, string> = {
-  'いす': '🪑', 'ランプ': '🪔', 'クッション': '🛋️', '観葉植物': '🌿',
-  'ぬいぐるみ': '🧸', 'ぼうし': '🎩', 'テーブル': '🪵', 'フラワーポット': '🌸',
-}
+import { getItemEmoji } from '@/lib/items'
 
 interface TownHomeProps {
   gameState: GameState
@@ -66,7 +62,7 @@ export default function TownHome({ gameState, onStart }: TownHomeProps) {
             <div className="flex flex-wrap gap-2">
               {gameState.items.map((item, i) => (
                 <div key={i} className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-center">
-                  <div className="text-2xl">{ITEM_EMOJI[item] ?? '📦'}</div>
+                  <div className="text-2xl">{getItemEmoji(item)}</div>
                   <p className="text-xs text-gray-500">{item}</p>
                 </div>
               ))}

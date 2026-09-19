@@ -28,8 +28,12 @@ export interface GameState {
   coins: number
   items: string[]
   problemsSolved: number
-  screen: 'home' | 'difficulty' | 'request' | 'division' | 'milestone'
+  screen: 'home' | 'difficulty' | 'request' | 'division' | 'reward' | 'milestone'
   currentProblem: Problem | null
+  /** お祝い画面（reward）で見せる、いまもらったアイテム */
+  rewardItem: string | null
+  /** お祝いのあとに、節目画面（milestone）を挟むか */
+  milestoneAfterReward: boolean
 }
 
 export interface WorkingRow {

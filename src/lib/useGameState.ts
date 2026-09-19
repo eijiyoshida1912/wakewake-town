@@ -44,6 +44,8 @@ export function useGameState() {
     problemsSolved: 0,
     screen: 'home',
     currentProblem: null,
+    rewardItem: null,
+    milestoneAfterReward: false,
   })
   const [hydrated, setHydrated] = useState(false)
 
@@ -88,10 +90,12 @@ export function useGameState() {
       const coinsEarned = DIFFICULTIES[prev.currentProblem.difficulty].coins
       const solved = prev.problemsSolved + 1
       const newItems = [...prev.items]
+      let rewardItem: string | null = null
       if (Math.random() < 0.3) {
         const remaining = ITEMS.filter(i => !newItems.includes(i))
         if (remaining.length > 0) {
-          newItems.push(remaining[Math.floor(Math.random() * remaining.length)])
+          rewardItem = remaining[Math.floor(Math.random() * remaining.length)]
+          newItems.push(rewardItem)
         }
       }
       const isMilestone = solved % MILESTONE === 0
@@ -100,7 +104,23 @@ export function useGameState() {
         coins: prev.coins + coinsEarned,
         items: newItems,
         problemsSolved: solved,
-        screen: isMilestone ? 'milestone' : 'home',
+        // アイテムをもらったときは、先にお祝い画面を見せる（節目画面はそのあと）
+        rewardItem,
+        milestoneAfterReward: rewardItem !== null && isMilestone,
+        screen: rewardItem !== null ? 'reward' : isMilestone ? 'milestone' : 'home',
+      }
+    })
+  }, [])
+
+  // お祝い画面以外での呼び出し（連打など）は無視する
+  const handleRewardDone = useCallback(() => {
+    setGameState(prev => {
+      if (prev.screen !== 'reward') return prev
+      return {
+        ...prev,
+        rewardItem: null,
+        milestoneAfterReward: false,
+        screen: prev.milestoneAfterReward ? 'milestone' : 'home',
       }
     })
   }, [])
@@ -117,6 +137,7 @@ export function useGameState() {
     handleSelectDifficulty,
     handleAccept,
     handleComplete,
+    handleRewardDone,
     handleMilestoneDone,
   }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
 import Home from './page'
 
 beforeEach(() => {
@@ -9,6 +9,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
+  vi.useRealTimers()
 })
 
 describe('ページ全体の画面遷移', () => {
@@ -47,5 +48,43 @@ describe('ページ全体の画面遷移', () => {
     fireEvent.click(screen.getByRole('button', { name: /チャレンジ/ }))
     fireEvent.click(screen.getByRole('button', { name: /お手伝いする/ }))
     expect(screen.getByText(/\d{3} ÷ \d を計算しよう/)).toBeDefined()
+  })
+})
+
+describe('アイテムをもらったときのお祝い（ページ全体）', () => {
+  const advance = (ms: number) => act(() => { vi.advanceTimersByTime(ms) })
+  const submit = (answer: string) => {
+    for (const ch of answer) fireEvent.click(screen.getByRole('button', { name: ch }))
+    fireEvent.click(screen.getByRole('button', { name: 'こたえる！' }))
+    advance(800)
+  }
+
+  it('かんたん（96 ÷ 3）を解いてアイテムをもらうと、お祝い画面 → 「やったー！」でホーム。持ち物に増えている', () => {
+    vi.useFakeTimers()
+    render(<Home />)
+    // 乱数 0: 最初のかんたん（96 ÷ 3）が出て、アイテム（いす）がもらえる
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    fireEvent.click(screen.getByRole('button', { name: /おねがいをきく/ }))
+    fireEvent.click(screen.getByRole('button', { name: /かんたん/ }))
+    fireEvent.click(screen.getByRole('button', { name: /お手伝いする/ }))
+    expect(screen.getByText(/96 ÷ 3 を計算しよう/)).toBeDefined()
+
+    submit('3')
+    submit('9')
+    submit('0')
+    fireEvent.click(screen.getByRole('button', { name: /6 をおろす/ }))
+    advance(700)
+    submit('2')
+    submit('6')
+    submit('0')
+
+    fireEvent.click(screen.getByRole('button', { name: /つぎのおねがいへ/ }))
+    expect(screen.getByText('いすをもらったよ！')).toBeDefined()
+    expect(screen.queryByRole('button', { name: /おねがいをきく/ })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /やったー/ }))
+    expect(screen.getByRole('button', { name: /おねがいをきく/ })).toBeDefined()
+    expect(screen.getByText('いす')).toBeDefined()
+    expect(screen.getByText('1 こ')).toBeDefined()
   })
 })
