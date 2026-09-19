@@ -187,13 +187,23 @@ describe('ChallengeBoard: 「できた！」ボタン', () => {
     expect(onSolved).toHaveBeenCalledTimes(1)
   })
 
-  it('省略できる 0 を書いていなくても、ほかが正しければ押すと完成する（857 ÷ 4）', () => {
+  it('途中の 0（8 − 8 = 0）を書いていなくても、ほかが正しければ押すと完成する（857 ÷ 4）', () => {
     const onSolved = vi.fn()
     const problem857 = makeProblem(857, 4, 214, 1)
     render(<ChallengeBoard problem={problem857} onSolved={onSolved} />)
     for (const c of getChallengeCells(problem857)) {
       if (c.expected !== null && c.key !== 'r-0-0') enter(getCellLabel(c), c.expected)
     }
+    pressDone()
+    expect(onSolved).toHaveBeenCalledTimes(1)
+  })
+
+  it('商とあまりだけ書いて押すと、途中の式が空でも、待たずにすぐ完成する（259 ÷ 4）', () => {
+    const onSolved = vi.fn()
+    render(<ChallengeBoard problem={problem259} onSolved={onSolved} />)
+    enter('しょう 2れつめ', 6)
+    enter('しょう 3れつめ', 4)
+    enter('ひき算 2かいめ 3れつめ', 3)
     pressDone()
     expect(onSolved).toHaveBeenCalledTimes(1)
   })
@@ -227,6 +237,42 @@ describe('ChallengeBoard: 完成', () => {
       vi.advanceTimersByTime(1000)
     })
     expect(onSolved).toHaveBeenCalledTimes(1)
+  })
+
+  it('かけ算・ひき算を書かなくても、商とあまりが合っていれば完成する（259 ÷ 4 = 64 あまり 3）', () => {
+    vi.useFakeTimers()
+    const onSolved = vi.fn()
+    render(<ChallengeBoard problem={problem259} onSolved={onSolved} />)
+    enter('しょう 2れつめ', 6)
+    enter('しょう 3れつめ', 4)
+    expect(onSolved).not.toHaveBeenCalled()
+    enter('ひき算 2かいめ 3れつめ', 3)
+    // 途中の式のマスは空のまま
+    expect(cell('かけ算 1かいめ 1れつめ').textContent).toBe('')
+    expect(cell('かけ算 1かいめ 2れつめ').textContent).toBe('')
+    act(() => {
+      vi.advanceTimersByTime(1000)
+    })
+    expect(onSolved).toHaveBeenCalledTimes(1)
+  })
+
+  it('商だけ書いてあまりが空なら、時間が経っても完成しない', () => {
+    vi.useFakeTimers()
+    const onSolved = vi.fn()
+    render(<ChallengeBoard problem={problem259} onSolved={onSolved} />)
+    enter('しょう 2れつめ', 6)
+    enter('しょう 3れつめ', 4)
+    act(() => {
+      vi.advanceTimersByTime(5000)
+    })
+    expect(onSolved).not.toHaveBeenCalled()
+  })
+
+  it('途中の式にまちがいを書いても、その場でまちがいと分かる（完成には影響しない）', () => {
+    render(<ChallengeBoard problem={problem259} onSolved={() => {}} />)
+    enter('かけ算 1かいめ 2れつめ', 9)
+    expect(cell('かけ算 1かいめ 2れつめ').getAttribute('data-wrong')).toBe('true')
+    expect(cell('かけ算 1かいめ 2れつめ').textContent).toBe('')
   })
 
   it('ひき算の答えの 0 を書かず、次の数だけをおろす書き方でも完成する（857 ÷ 4 の 8 − 8 = 0）', () => {

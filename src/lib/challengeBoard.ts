@@ -13,11 +13,10 @@ export interface ChallengeCell {
   /** 正解の数字。null は「空欄のままが正解」のマス */
   expected: number | null
   /**
-   * true なら、空欄のままでも 0 を書いても正解のマス。
-   * ひき算の答えが 0 で、同じ行に次の数をおろす場合の「0」（例: 8 − 8 = 0 に 5 をおろして 05）。
-   * 手で書くときは 0 を省略して 5 だけ書くのが普通なので、どちらでも完成にする。
+   * 完成に必要なマスか。商のすべての桁と、最後のあまり。
+   * 途中の式（かけ算・おろした数・途中のひき算）は、書かなくても、答えが合っていれば完成にする。
    */
-  optional: boolean
+  required: boolean
 }
 
 /**
@@ -28,27 +27,29 @@ export function getChallengeCells(problem: Problem): ChallengeCell[] {
   const steps = generateSteps(problem)
   const solved = getBoardSnapshot(problem, steps.length - 1, steps)
   const width = solved.quotientDigits.length
+  // 行は [被除数, かけ算, ひき算, かけ算, ひき算, …] の順。最後のひき算の行が、最後のあまり
+  const lastRound = (solved.rows.length - 1) / 2 - 1
 
   const cells: ChallengeCell[] = []
   for (let col = 0; col < width; col++) {
-    cells.push({ key: `q-${col}`, kind: 'quotient', round: 0, col, expected: solved.quotientDigits[col], optional: false })
+    const expected = solved.quotientDigits[col]
+    cells.push({ key: `q-${col}`, kind: 'quotient', round: 0, col, expected, required: expected !== null })
   }
   for (let round = 0; round < width; round++) {
     const productRow = solved.rows[1 + round * 2]
     const remainderRow = solved.rows[2 + round * 2]
     for (let col = 0; col < width; col++) {
-      cells.push({ key: `p-${round}-${col}`, kind: 'product', round, col, expected: productRow?.digits[col] ?? null, optional: false })
+      cells.push({ key: `p-${round}-${col}`, kind: 'product', round, col, expected: productRow?.digits[col] ?? null, required: false })
     }
     for (let col = 0; col < width; col++) {
       const expected = remainderRow?.digits[col] ?? null
-      const hasDroppedDigitNext = (remainderRow?.digits[col + 1] ?? null) !== null
       cells.push({
         key: `r-${round}-${col}`,
         kind: 'remainder',
         round,
         col,
         expected,
-        optional: expected === 0 && hasDroppedDigitNext,
+        required: round === lastRound && expected !== null,
       })
     }
   }
@@ -73,13 +74,12 @@ export function judgeCell(problem: Problem, key: string, digit: number): boolean
 }
 
 /**
- * 正解のマスがすべて正しく埋まっていて、空欄が正解のマスには何も入っていなければ true。
- * 省略できる 0（optional）は、書いていなくても、0 を書いていても構わない。
+ * 商のすべての桁と最後のあまりが書いてあって、書いたマスがすべて正しければ true。
+ * 途中の式は、書いていなくても構わない（書いたなら正しくなければならない）。
  */
 export function isChallengeSolved(problem: Problem, filled: Record<string, number>): boolean {
   return getChallengeCells(problem).every(cell => {
-    if (cell.expected === null) return !(cell.key in filled)
-    if (cell.optional) return !(cell.key in filled) || filled[cell.key] === cell.expected
-    return filled[cell.key] === cell.expected
+    if (cell.key in filled && filled[cell.key] !== cell.expected) return false
+    return !cell.required || cell.key in filled
   })
 }

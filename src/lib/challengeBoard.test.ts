@@ -68,42 +68,48 @@ describe('getChallengeCells: 259 ÷ 4 = 64 あまり 3（商が2桁）', () => {
   })
 })
 
-describe('getChallengeCells: 0 を書かなくてもよいマス（ひき算の答えが 0 で、次の数をおろす行）', () => {
-  const optionalKeys = (problem: ReturnType<typeof makeProblem>) =>
+describe('getChallengeCells: 完成に必要なマス（商のすべての桁と、最後のあまり）', () => {
+  const requiredKeys = (problem: ReturnType<typeof makeProblem>) =>
     getChallengeCells(problem)
-      .filter(c => c.optional)
+      .filter(c => c.required)
       .map(c => c.key)
 
-  it('857 ÷ 4: 8 − 8 = 0 の 0（r-0-0）だけが省略できる', () => {
-    expect(optionalKeys(makeProblem(857, 4, 214, 1))).toEqual(['r-0-0'])
+  it('749 ÷ 3: 商の3桁と、3周目のあまり（r-2-2）', () => {
+    expect(requiredKeys(makeProblem(749, 3, 249, 2))).toEqual(['q-0', 'q-1', 'q-2', 'r-2-2'])
   })
 
-  it('965 ÷ 2: 16 − 16 = 0 の 0（r-1-1）が省略できる', () => {
-    expect(optionalKeys(makeProblem(965, 2, 482, 1))).toEqual(['r-1-1'])
+  it('259 ÷ 4: 商は十・一の位の2桁（百の位は空欄）、あまりは2周目（r-1-2）', () => {
+    expect(requiredKeys(makeProblem(259, 4, 64, 3))).toEqual(['q-1', 'q-2', 'r-1-2'])
   })
 
-  it('487 ÷ 6: 48 − 48 = 0 の 0（r-0-1）が省略できる（2桁の割り算の後の 0）', () => {
-    expect(optionalKeys(makeProblem(487, 6, 81, 1))).toEqual(['r-0-1'])
+  it('487 ÷ 6: 2周で終わるので、あまりは2周目（r-1-2）', () => {
+    expect(requiredKeys(makeProblem(487, 6, 81, 1))).toEqual(['q-1', 'q-2', 'r-1-2'])
   })
 
-  it('604 ÷ 3: 省略できるのは 6 − 6 = 0 と 0 − 0 = 0 の 0 だけ。商の 0・かけ算の 0・おろした 0 は必須', () => {
-    const problem = makeProblem(604, 3, 201, 1)
-    expect(optionalKeys(problem)).toEqual(['r-0-0', 'r-1-1'])
-    const requiredZeros = getChallengeCells(problem)
-      .filter(c => c.expected === 0 && !c.optional)
-      .map(c => c.key)
-    expect(requiredZeros).toEqual(['q-1', 'r-0-1', 'p-1-1'])
+  it('857 ÷ 4: 途中に 8 − 8 = 0 があっても、必要なのは商の3桁と最後のあまり', () => {
+    expect(requiredKeys(makeProblem(857, 4, 214, 1))).toEqual(['q-0', 'q-1', 'q-2', 'r-2-2'])
   })
 
-  it('最後のひき算の答えが 0（割り切れる）のときは、0 を書くのが必須（96 ÷ 3 の r-1-1）', () => {
-    const problem = makeProblem(96, 3, 32, 0)
-    const last = getChallengeCells(problem).find(c => c.key === 'r-1-1')
-    expect(last?.expected).toBe(0)
-    expect(last?.optional).toBe(false)
+  it('604 ÷ 3: 商の途中の 0（q-1）も必要', () => {
+    expect(requiredKeys(makeProblem(604, 3, 201, 1))).toEqual(['q-0', 'q-1', 'q-2', 'r-2-2'])
   })
 
-  it('答えが 0 以外のマスは、どれも省略できない（749 ÷ 3）', () => {
-    expect(optionalKeys(makeProblem(749, 3, 249, 2))).toEqual([])
+  it('96 ÷ 3（割り切れる）: あまり 0 のマス（r-1-1）も必要', () => {
+    expect(requiredKeys(makeProblem(96, 3, 32, 0))).toEqual(['q-0', 'q-1', 'r-1-1'])
+  })
+
+  it('途中の式（かけ算・おろした数・途中のひき算）は、どれも必要ではない', () => {
+    for (const problem of [makeProblem(749, 3, 249, 2), makeProblem(259, 4, 64, 3), makeProblem(604, 3, 201, 1)]) {
+      const cells = getChallengeCells(problem)
+      expect(cells.filter(c => c.kind === 'product' && c.required)).toEqual([])
+      // 必要なひき算のマスは、最後の1つだけ
+      expect(cells.filter(c => c.kind === 'remainder' && c.required)).toHaveLength(1)
+    }
+  })
+
+  it('空欄が正解のマスは、必要ではない', () => {
+    const cells = getChallengeCells(makeProblem(259, 4, 64, 3))
+    expect(cells.filter(c => c.expected === null && c.required)).toEqual([])
   })
 })
 
@@ -193,43 +199,57 @@ describe('isChallengeSolved', () => {
   })
 })
 
-describe('isChallengeSolved: 省略できる 0（857 ÷ 4 の 8 − 8 = 0）', () => {
-  const problem = makeProblem(857, 4, 214, 1)
+describe('isChallengeSolved: 商のすべての桁と最後のあまりが合っていれば完成（途中の式は空でもよい）', () => {
+  const problem = makeProblem(259, 4, 64, 3)
+  const answerOnly = { 'q-1': 6, 'q-2': 4, 'r-1-2': 3 }
 
-  it('その 0 を書かなくても、ほかがすべて正しければ完成', () => {
-    const filled = expectedDigits(problem)
-    expect(filled['r-0-0']).toBe(0)
-    delete filled['r-0-0']
-    expect(isChallengeSolved(problem, filled)).toBe(true)
+  it('商とあまりだけ書いてあれば、途中の式が空でも完成', () => {
+    expect(isChallengeSolved(problem, answerOnly)).toBe(true)
   })
 
-  it('その 0 を書いても完成', () => {
-    expect(isChallengeSolved(problem, expectedDigits(problem))).toBe(true)
+  it('途中の式を一部だけ書いても完成（かけ算の 24 だけ書いた場合）', () => {
+    expect(isChallengeSolved(problem, { ...answerOnly, 'p-0-0': 2, 'p-0-1': 4 })).toBe(true)
   })
 
-  it('その 0 を省略しても、ほかのマスが1つ足りなければ未完成', () => {
-    const filled = expectedDigits(problem)
-    delete filled['r-0-0']
-    delete filled['r-2-2']
-    expect(isChallengeSolved(problem, filled)).toBe(false)
+  it('商の桁が1つ足りなければ未完成', () => {
+    expect(isChallengeSolved(problem, { 'q-1': 6, 'r-1-2': 3 })).toBe(false)
   })
 
-  it('そのマスに 0 以外の数字が入っていたら未完成', () => {
-    const filled = { ...expectedDigits(problem), 'r-0-0': 5 }
-    expect(isChallengeSolved(problem, filled)).toBe(false)
+  it('あまりが空なら未完成（商だけ書いた場合）', () => {
+    expect(isChallengeSolved(problem, { 'q-1': 6, 'q-2': 4 })).toBe(false)
   })
 
-  it('省略できない 0（最後のあまりが 0 の 96 ÷ 3 の r-1-1）を書いていなければ未完成', () => {
+  it('商が空なら未完成（あまりだけ書いた場合）', () => {
+    expect(isChallengeSolved(problem, { 'r-1-2': 3 })).toBe(false)
+  })
+
+  it('商とあまりが合っていても、途中のマスに違う数字が入っていたら未完成', () => {
+    expect(isChallengeSolved(problem, { ...answerOnly, 'p-0-0': 9 })).toBe(false)
+  })
+
+  it('商とあまりが合っていても、空欄が正解のマス（商の百の位）に数字が入っていたら未完成', () => {
+    expect(isChallengeSolved(problem, { ...answerOnly, 'q-0': 2 })).toBe(false)
+  })
+
+  it('あまりが 0（割り切れる）でも、0 を書かなければ未完成（96 ÷ 3）', () => {
     const divisible = makeProblem(96, 3, 32, 0)
-    const filled = expectedDigits(divisible)
-    delete filled['r-1-1']
-    expect(isChallengeSolved(divisible, filled)).toBe(false)
+    expect(isChallengeSolved(divisible, { 'q-0': 3, 'q-1': 2 })).toBe(false)
+    expect(isChallengeSolved(divisible, { 'q-0': 3, 'q-1': 2, 'r-1-1': 0 })).toBe(true)
   })
 
-  it('省略できない 0（604 ÷ 3 の商の十の位 q-1）を書いていなければ未完成', () => {
+  it('商の途中の 0 も、書かなければ未完成（604 ÷ 3 の 201）', () => {
     const zeroQuotient = makeProblem(604, 3, 201, 1)
-    const filled = expectedDigits(zeroQuotient)
-    delete filled['q-1']
-    expect(isChallengeSolved(zeroQuotient, filled)).toBe(false)
+    expect(isChallengeSolved(zeroQuotient, { 'q-0': 2, 'q-2': 1, 'r-2-2': 1 })).toBe(false)
+    expect(isChallengeSolved(zeroQuotient, { 'q-0': 2, 'q-1': 0, 'q-2': 1, 'r-2-2': 1 })).toBe(true)
+  })
+
+  it('途中に 8 − 8 = 0 がある 857 ÷ 4 も、商とあまりだけで完成', () => {
+    const p857 = makeProblem(857, 4, 214, 1)
+    expect(isChallengeSolved(p857, { 'q-0': 2, 'q-1': 1, 'q-2': 4, 'r-2-2': 1 })).toBe(true)
+  })
+
+  it('商もあまりもまちがっている（違う数字）なら未完成', () => {
+    expect(isChallengeSolved(problem, { 'q-1': 6, 'q-2': 5, 'r-1-2': 3 })).toBe(false)
+    expect(isChallengeSolved(problem, { 'q-1': 6, 'q-2': 4, 'r-1-2': 2 })).toBe(false)
   })
 })
