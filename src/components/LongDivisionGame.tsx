@@ -8,6 +8,7 @@ import { generateSteps, getBoardSnapshot } from '@/lib/divisionLogic'
 import LongDivisionBoard from './LongDivisionBoard'
 import AssistedPlay from './AssistedPlay'
 import ChallengeBoard from './ChallengeBoard'
+import ShareAnimation from './ShareAnimation'
 
 interface LongDivisionGameProps {
   problem: Problem
@@ -56,10 +57,18 @@ export default function LongDivisionGame({ problem, onComplete }: LongDivisionGa
               </p>
               <p className="text-gray-500 mt-2">ありがとう！大助かりだよ！</p>
             </div>
+            <ShareAnimation problem={problem} />
             <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-3 text-center w-full">
               <p className="text-amber-600 font-bold text-lg">＋{config.coins}コイン！🪙</p>
             </div>
-            <div className="bg-white rounded-2xl p-4 shadow">
+            {/* 次へ進むボタンは、画面の下に隠れないよう、見返し用の筆算より上に置く */}
+            <button
+              onClick={onComplete}
+              className="w-full max-w-xs bg-green-400 hover:bg-green-500 text-white font-bold text-xl py-4 rounded-2xl shadow-lg transition-all active:scale-95"
+            >
+              つぎのおねがいへ →
+            </button>
+            <div role="group" aria-label="ひっ算のこたえ" className="bg-white rounded-2xl p-4 shadow">
               <LongDivisionBoard
                 dividend={problem.dividend}
                 divisor={problem.divisor}
@@ -67,12 +76,6 @@ export default function LongDivisionGame({ problem, onComplete }: LongDivisionGa
                 stepType="complete"
               />
             </div>
-            <button
-              onClick={onComplete}
-              className="w-full max-w-xs bg-green-400 hover:bg-green-500 text-white font-bold text-xl py-4 rounded-2xl shadow-lg transition-all active:scale-95"
-            >
-              つぎのおねがいへ →
-            </button>
           </div>
         ) : config.assisted ? (
           <AssistedPlay problem={problem} onSolved={handleSolved} />

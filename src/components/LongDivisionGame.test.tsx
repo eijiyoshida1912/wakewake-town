@@ -84,6 +84,23 @@ describe('LongDivisionGame: 補助あり（かんたん・まあまあ）', () =
     expect(screen.getByText('＋15コイン！🪙')).toBeDefined()
   })
 
+  it('完成画面に、わけわけのアニメーションが出る（75 ÷ 4 なら4人のなかま）', () => {
+    render(<LongDivisionGame problem={normalProblem} onComplete={() => {}} />)
+    expect(screen.queryByRole('region', { name: 'わけわけ' })).toBeNull()
+    submit('1')
+    submit('4')
+    submit('3')
+    drop(5)
+    submit('8')
+    submit('32')
+    submit('3')
+
+    expect(screen.getByRole('region', { name: 'わけわけ' })).toBeDefined()
+    expect(screen.getAllByRole('group', { name: /なかま/ })).toHaveLength(4)
+    advance(5000)
+    expect(screen.getByRole('group', { name: 'のこり' }).textContent).toMatch(/あまり.*3/)
+  })
+
   it('かんたん（96 ÷ 3）を最後まで解くと、あまりなしで「32」と ＋10コイン が表示される', () => {
     render(<LongDivisionGame problem={easyProblem} onComplete={() => {}} />)
     submit('3')
@@ -97,6 +114,24 @@ describe('LongDivisionGame: 補助あり（かんたん・まあまあ）', () =
     expect(screen.getByText(/96 ÷ 3 =/).textContent).toBe('96 ÷ 3 = 32')
     expect(screen.queryByText(/あまり/)).toBeNull()
     expect(screen.getByText('＋10コイン！🪙')).toBeDefined()
+  })
+
+  it('完成画面では「つぎのおねがいへ」が、完成した筆算の盤面より上にある（画面の下に隠れない）', () => {
+    render(<LongDivisionGame problem={easyProblem} onComplete={() => {}} />)
+    submit('3')
+    submit('9')
+    submit('0')
+    drop(6)
+    submit('2')
+    submit('6')
+    submit('0')
+
+    const button = screen.getByRole('button', { name: /つぎのおねがいへ/ })
+    const share = screen.getByRole('region', { name: 'わけわけ' })
+    const answerBoard = screen.getByRole('group', { name: 'ひっ算のこたえ' })
+    // わけわけ → ボタン → 完成した筆算 の順
+    expect(share.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(button.compareDocumentPosition(answerBoard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('完成後に「つぎのおねがいへ」を押すと、onComplete が1回呼ばれる', () => {
@@ -140,6 +175,7 @@ describe('LongDivisionGame: 補助なし（チャレンジ）', () => {
     expect(screen.getByText(/できた！/)).toBeDefined()
     expect(screen.getByText(/259 ÷ 4 =/).textContent).toBe('259 ÷ 4 = 64 あまり 3')
     expect(screen.getByText('＋30コイン！🪙')).toBeDefined()
+    expect(screen.getAllByRole('group', { name: /なかま/ })).toHaveLength(4)
 
     fireEvent.click(screen.getByRole('button', { name: /つぎのおねがいへ/ }))
     expect(onComplete).toHaveBeenCalledTimes(1)
