@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { PROBLEMS } from './problems'
-import { ITEMS, SHOP_ITEMS, ITEM_CATEGORIES, ITEM_EMOJI, getItemEmoji, getItemPrice, getShareItemEmoji } from './items'
+import { ITEMS, SHOP_ITEMS, ITEM_CATEGORIES, ITEM_EMOJI, getItemEmoji, getItemPrice, getItemCategoryLabel, getShareItemEmoji } from './items'
 
 describe('アイテムの絵文字', () => {
   it('ITEMS のすべてのアイテムに絵文字がある', () => {
@@ -126,5 +126,20 @@ describe('お店のアイテムと値段', () => {
 
   it('getItemPrice は、お店にない名前では RangeError', () => {
     expect(() => getItemPrice('ふしぎなもの')).toThrow(RangeError)
+  })
+})
+
+describe('getItemCategoryLabel: アイテムのカテゴリ名', () => {
+  it('アイテム名から、カテゴリの表示名を返す（いす → かぐ、ぼうし → おもちゃ、ロケット → のりもの）', () => {
+    expect(getItemCategoryLabel('いす')).toBe('かぐ')
+    expect(getItemCategoryLabel('ぼうし')).toBe('おもちゃ')
+    expect(getItemCategoryLabel('ひまわり')).toBe('しょくぶつ')
+    expect(getItemCategoryLabel('ケーキ')).toBe('たべもの')
+    expect(getItemCategoryLabel('ロケット')).toBe('のりもの')
+  })
+
+  it('お店にない名前は null', () => {
+    expect(getItemCategoryLabel('ふしぎなもの')).toBeNull()
+    expect(getItemCategoryLabel('')).toBeNull()
   })
 })

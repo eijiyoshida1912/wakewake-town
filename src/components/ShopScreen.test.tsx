@@ -7,7 +7,12 @@ afterEach(() => {
   cleanup()
 })
 
-const baseProps = { coins: 100, items: [] as string[], purchasedItem: null as string | null }
+const baseProps = {
+  coins: 100,
+  items: [] as string[],
+  purchasedItem: null as string | null,
+  onDismissPurchase: () => {},
+}
 const rows = () => screen.getAllByRole('listitem')
 const openTab = (label: string) => fireEvent.click(screen.getByRole('tab', { name: new RegExp(`^${label} `) }))
 
@@ -91,22 +96,6 @@ describe('ShopScreen: 買う', () => {
 })
 
 describe('ShopScreen: 買ったあと・そろったとき・もどる', () => {
-  it('買ったばかりのアイテムがあれば「○○をかったよ！」と出る', () => {
-    render(<ShopScreen {...baseProps} items={['ぼうし']} purchasedItem="ぼうし" onBuy={() => {}} onBack={() => {}} />)
-    expect(screen.getByText(/ぼうしをかったよ！/)).toBeDefined()
-  })
-
-  it('買ったばかりでなければ、「かったよ！」は出ない', () => {
-    render(<ShopScreen {...baseProps} onBuy={() => {}} onBack={() => {}} />)
-    expect(screen.queryByText(/かったよ！/)).toBeNull()
-  })
-
-  it('タブを切り替えても、買ったばかりのメッセージは残る', () => {
-    render(<ShopScreen {...baseProps} items={['いす']} purchasedItem="いす" onBuy={() => {}} onBack={() => {}} />)
-    openTab('のりもの')
-    expect(screen.getByText(/いすをかったよ！/)).toBeDefined()
-  })
-
   it('1つのカテゴリをそろえると、そのタブに「このコーナーはぜんぶそろったよ」と出て、ほかのタブは買える', () => {
     const furniture = SHOP_ITEMS.filter(i => i.category === 'furniture').map(i => i.name)
     render(<ShopScreen {...baseProps} coins={500} items={furniture} onBuy={() => {}} onBack={() => {}} />)
@@ -132,5 +121,43 @@ describe('ShopScreen: 買ったあと・そろったとき・もどる', () => {
     fireEvent.click(screen.getByRole('button', { name: /もどる/ }))
     expect(onBack).toHaveBeenCalledTimes(1)
     expect(onBuy).not.toHaveBeenCalled()
+  })
+})
+
+describe('ShopScreen: 買ったときのモーダル', () => {
+  const bought = { ...baseProps, items: ['ぼうし'], purchasedItem: 'ぼうし' }
+
+  it('買ったばかりのアイテムがあれば、「○○をかったよ！」のモーダルが出る', () => {
+    render(<ShopScreen {...bought} onBuy={() => {}} onBack={() => {}} />)
+    expect(screen.getByRole('dialog', { name: /ぼうしをかったよ！/ })).toBeDefined()
+  })
+
+  it('買ったばかりでなければ、モーダルは出ない', () => {
+    render(<ShopScreen {...baseProps} onBuy={() => {}} onBack={() => {}} />)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByText(/かったよ！/)).toBeNull()
+  })
+
+  it('「かったよ！」は、うしろの画面には重ねて出さず、モーダルの1か所だけ', () => {
+    render(<ShopScreen {...bought} onBuy={() => {}} onBack={() => {}} />)
+    expect(screen.getAllByText(/ぼうしをかったよ！/)).toHaveLength(1)
+  })
+
+  it('「やったー！」を押すと、onDismissPurchase が1回呼ばれる', () => {
+    const onDismissPurchase = vi.fn()
+    render(<ShopScreen {...bought} onDismissPurchase={onDismissPurchase} onBuy={() => {}} onBack={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /やったー/ }))
+    expect(onDismissPurchase).toHaveBeenCalledTimes(1)
+  })
+
+  it('モーダルが開いている間、うしろのお店は操作できない（inert）。閉じていれば操作できる', () => {
+    const { container, rerender } = render(<ShopScreen {...bought} onBuy={() => {}} onBack={() => {}} />)
+    const inert = container.querySelector('[inert]')
+    expect(inert).not.toBeNull()
+    expect(inert?.textContent).toContain('もどる')
+    expect(screen.getByRole('dialog').closest('[inert]')).toBeNull()
+
+    rerender(<ShopScreen {...baseProps} onBuy={() => {}} onBack={() => {}} />)
+    expect(container.querySelector('[inert]')).toBeNull()
   })
 })

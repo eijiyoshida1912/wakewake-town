@@ -22,6 +22,7 @@ export default function Home() {
     handleOpenShop,
     handleCloseShop,
     handleBuy,
+    handleDismissPurchase,
     handleMilestoneDone,
   } = useGameState()
 
@@ -55,6 +56,7 @@ export default function Home() {
           items={gameState.items}
           purchasedItem={gameState.purchasedItem}
           onBuy={handleBuy}
+          onDismissPurchase={handleDismissPurchase}
           onBack={handleCloseShop}
         />
       )

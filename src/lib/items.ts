@@ -92,6 +92,13 @@ export function getItemEmoji(item: string): string {
   return ITEM_EMOJI[item] ?? UNKNOWN_ITEM_EMOJI
 }
 
+/** アイテム名から、カテゴリの表示名（かぐ・おもちゃ など）を返す。お店にない名前は null */
+export function getItemCategoryLabel(item: string): string | null {
+  const found = SHOP_ITEMS.find(shopItem => shopItem.name === item)
+  if (!found) return null
+  return ITEM_CATEGORIES.find(category => category.id === found.category)?.label ?? null
+}
+
 /** アイテム名から値段を返す。お店にない名前は RangeError */
 export function getItemPrice(item: string): number {
   const found = SHOP_ITEMS.find(shopItem => shopItem.name === item)

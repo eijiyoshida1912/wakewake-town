@@ -136,14 +136,20 @@ export function useGameState() {
     setGameState(prev => ({ ...prev, screen: 'home', purchasedItem: null }))
   }, [])
 
-  // お店の画面以外での呼び出し、買えないアイテム（コイン不足・持っている・お店にない）は無視する
+  // 次のものは無視する: お店の画面以外、「かったよ！」を閉じる前（連打で上書きされない）、
+  // 買えないアイテム（コイン不足・持っている・お店にない）
   const handleBuy = useCallback((name: string) => {
     setGameState(prev => {
-      if (prev.screen !== 'shop') return prev
+      if (prev.screen !== 'shop' || prev.purchasedItem !== null) return prev
       const result = buyItem(prev.coins, prev.items, name)
       if (!result.ok) return prev
       return { ...prev, coins: result.coins, items: result.items, purchasedItem: name }
     })
+  }, [])
+
+  // 「○○をかったよ！」のモーダルを閉じる
+  const handleDismissPurchase = useCallback(() => {
+    setGameState(prev => (prev.purchasedItem === null ? prev : { ...prev, purchasedItem: null }))
   }, [])
 
   const handleMilestoneDone = useCallback(() => {
@@ -162,6 +168,7 @@ export function useGameState() {
     handleOpenShop,
     handleCloseShop,
     handleBuy,
+    handleDismissPurchase,
     handleMilestoneDone,
   }
 }

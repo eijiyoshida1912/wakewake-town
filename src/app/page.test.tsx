@@ -117,8 +117,11 @@ describe('お店と町のかざり（ページ全体）', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: /^おもちゃ / }))
     fireEvent.click(screen.getByRole('button', { name: 'ぼうしをかう' }))
-    expect(screen.getByText(/ぼうしをかったよ！/)).toBeDefined()
+    // 買った直後は、「かったよ！」のモーダルが出て、うしろでコインが減り、買ったものは並ばなくなる
+    expect(screen.getByRole('dialog', { name: /ぼうしをかったよ！/ })).toBeDefined()
     expect(screen.queryByRole('button', { name: 'ぼうしをかう' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /やったー/ }))
+    expect(screen.queryByRole('dialog')).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: /もどる/ }))
     expect(screen.getByRole('button', { name: /おねがいをきく/ })).toBeDefined()

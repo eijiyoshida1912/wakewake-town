@@ -356,13 +356,40 @@ describe('useGameState: お店', () => {
     expect(result.current.gameState).toMatchObject({ coins: 70, items: ['ぼうし'] })
   })
 
-  it('続けて別のアイテムを買うと、「買ったもの」が新しいほうに変わる', () => {
+  it('「かったよ！」を閉じる前は、別のアイテムを買えない（買ったばかりのものが上書きされない）', () => {
     withCoins(100)
     const { result } = renderHook(() => useGameState())
     act(() => result.current.handleOpenShop())
     act(() => result.current.handleBuy('ぼうし'))
     act(() => result.current.handleBuy('ぬいぐるみ'))
+    expect(result.current.gameState).toMatchObject({ coins: 70, items: ['ぼうし'], purchasedItem: 'ぼうし' })
+  })
+
+  it('「かったよ！」を閉じると、「買ったもの」が消えるだけで、コインとアイテムはそのまま（お店に残る）', () => {
+    withCoins(100)
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenShop())
+    act(() => result.current.handleBuy('ぼうし'))
+    act(() => result.current.handleDismissPurchase())
+    expect(result.current.gameState).toMatchObject({ screen: 'shop', coins: 70, items: ['ぼうし'], purchasedItem: null })
+  })
+
+  it('閉じたあとなら、続けて別のアイテムを買える（ぼうし → ぬいぐるみ）', () => {
+    withCoins(100)
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenShop())
+    act(() => result.current.handleBuy('ぼうし'))
+    act(() => result.current.handleDismissPurchase())
+    act(() => result.current.handleBuy('ぬいぐるみ'))
     expect(result.current.gameState).toMatchObject({ coins: 30, items: ['ぼうし', 'ぬいぐるみ'], purchasedItem: 'ぬいぐるみ' })
+  })
+
+  it('買っていないときに「閉じる」を呼んでも、何も起きない', () => {
+    withCoins(100)
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenShop())
+    act(() => result.current.handleDismissPurchase())
+    expect(result.current.gameState).toMatchObject({ screen: 'shop', coins: 100, items: [], purchasedItem: null })
   })
 
   it('お店に入り直すと、「買ったもの」は消える', () => {
