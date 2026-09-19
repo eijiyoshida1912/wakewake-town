@@ -1,0 +1,108 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { GameState, Problem } from './types'
+import { getRandomProblem, ITEMS } from './problems'
+
+const STORAGE_KEY = 'wakewake-town-save'
+const MILESTONE = 5
+
+interface SaveData {
+  coins: number
+  items: string[]
+  problemsSolved: number
+}
+
+function loadSaveData(): SaveData {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return { coins: 0, items: [], problemsSolved: 0 }
+    const parsed = JSON.parse(raw)
+    return {
+      coins: typeof parsed.coins === 'number' ? parsed.coins : 0,
+      items: Array.isArray(parsed.items) ? parsed.items : [],
+      problemsSolved: typeof parsed.problemsSolved === 'number' ? parsed.problemsSolved : 0,
+    }
+  } catch {
+    return { coins: 0, items: [], problemsSolved: 0 }
+  }
+}
+
+function saveSaveData(data: SaveData) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  } catch {
+    // localStorage が使えない環境ではスキップ
+  }
+}
+
+export function useGameState() {
+  const [gameState, setGameState] = useState<GameState>({
+    coins: 0,
+    items: [],
+    problemsSolved: 0,
+    screen: 'home',
+    currentProblem: null,
+  })
+  const [hydrated, setHydrated] = useState(false)
+
+  // マウント時にlocalStorageから読み込む
+  useEffect(() => {
+    const saved = loadSaveData()
+    setGameState(prev => ({ ...prev, ...saved }))
+    setHydrated(true)
+  }, [])
+
+  // 保存対象の値が変わったらlocalStorageに書き込む
+  useEffect(() => {
+    if (!hydrated) return
+    saveSaveData({
+      coins: gameState.coins,
+      items: gameState.items,
+      problemsSolved: gameState.problemsSolved,
+    })
+  }, [hydrated, gameState.coins, gameState.items, gameState.problemsSolved])
+
+  const handleStart = useCallback(() => {
+    const problem = getRandomProblem(gameState.currentProblem?.id)
+    setGameState(prev => ({ ...prev, screen: 'request', currentProblem: problem }))
+  }, [gameState.currentProblem])
+
+  const handleAccept = useCallback(() => {
+    setGameState(prev => ({ ...prev, screen: 'division' }))
+  }, [])
+
+  const handleComplete = useCallback((coinsEarned: number) => {
+    setGameState(prev => {
+      const solved = prev.problemsSolved + 1
+      const newItems = [...prev.items]
+      if (Math.random() < 0.3) {
+        const remaining = ITEMS.filter(i => !newItems.includes(i))
+        if (remaining.length > 0) {
+          newItems.push(remaining[Math.floor(Math.random() * remaining.length)])
+        }
+      }
+      const isMilestone = solved % MILESTONE === 0
+      return {
+        ...prev,
+        coins: prev.coins + coinsEarned,
+        items: newItems,
+        problemsSolved: solved,
+        screen: isMilestone ? 'milestone' : 'home',
+      }
+    })
+  }, [])
+
+  const handleMilestoneDone = useCallback(() => {
+    setGameState(prev => ({ ...prev, screen: 'home' }))
+  }, [])
+
+  return {
+    gameState,
+    hydrated,
+    handleStart,
+    handleAccept,
+    handleComplete,
+    handleMilestoneDone,
+  }
+}
