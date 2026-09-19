@@ -116,7 +116,7 @@ export default function ChallengeBoard({ problem, onSolved }: ChallengeBoardProp
           {/* Working rows: 周の数は被除数の桁数と同じ（使わない周は空のまま） */}
           {Array.from({ length: width }, (_, round) => (
             <div key={round} className="flex flex-col gap-1">
-              <div className="flex gap-1 pl-3 border-t-2 border-gray-300 pt-1">
+              <div className="flex gap-1 pl-3 border-b-2 border-gray-300 pb-1">
                 {rowCells('product', round).map(c => renderCell(c))}
               </div>
               <div className="flex gap-1 pl-3">{rowCells('remainder', round).map(c => renderCell(c))}</div>

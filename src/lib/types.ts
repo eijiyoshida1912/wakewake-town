@@ -35,6 +35,7 @@ export interface GameState {
 export interface WorkingRow {
   label: 'dividend' | 'product' | 'remainder'
   digits: (number | null)[]
+  /** この行の下に横線を引く（かけ算の行に付く） */
   showLine: boolean
 }
 

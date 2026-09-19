@@ -61,14 +61,6 @@ export default function LongDivisionBoard({ dividend, divisor, snapshot, stepTyp
         <div className="flex flex-col gap-0">
           {rows.slice(1).map((row, rowIdx) => (
             <div key={rowIdx}>
-              {row.showLine && (
-                <div className="flex">
-                  <div className="w-3" />
-                  {row.digits.map((d, col) => (
-                    <div key={col} className={`w-10 md:w-14 ${d !== null ? 'border-t-2 border-gray-500' : ''}`} />
-                  ))}
-                </div>
-              )}
               <div className="flex items-center">
                 <div className="w-3" />
                 {row.digits.map((d, col) => {
@@ -91,6 +83,15 @@ export default function LongDivisionBoard({ dividend, divisor, snapshot, stepTyp
                   )
                 })}
               </div>
+              {/* かけ算の答えの下の横線（数字が入っているマスだけ） */}
+              {row.showLine && (
+                <div className="flex">
+                  <div className="w-3" />
+                  {row.digits.map((d, col) => (
+                    <div key={col} className={`w-10 md:w-14 ${d !== null ? 'border-t-2 border-gray-500' : ''}`} />
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>

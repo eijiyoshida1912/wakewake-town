@@ -48,6 +48,18 @@ describe('ChallengeBoard: 表示', () => {
     }
   })
 
+  it('横線は、かけ算の行の「下」（ひき算の行の上）に引かれ、被除数の直下には引かれない', () => {
+    render(<ChallengeBoard problem={problem259} onSolved={() => {}} />)
+    for (let round = 0; round < 3; round++) {
+      const productRow = cell(`かけ算 ${round + 1}かいめ 1れつめ`).parentElement!
+      const remainderRow = cell(`ひき算 ${round + 1}かいめ 1れつめ`).parentElement!
+      expect(productRow.className).toContain('border-b-2')
+      expect(productRow.className).not.toContain('border-t-2')
+      expect(remainderRow.className).not.toContain('border-b-2')
+      expect(remainderRow.className).not.toContain('border-t-2')
+    }
+  })
+
   it('手順の質問文やヒントは表示されない（補助なし）', () => {
     render(<ChallengeBoard problem={problem259} onSolved={() => {}} />)
     expect(screen.queryByText(/はいくつ入るかな/)).toBeNull()
