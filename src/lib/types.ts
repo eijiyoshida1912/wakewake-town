@@ -1,5 +1,7 @@
 export type ResidentId = 'cat' | 'rabbit' | 'bear'
 
+export type Difficulty = 'easy' | 'normal' | 'challenge'
+
 export type StepType = 'tateru' | 'kakeru' | 'hiku' | 'orosu' | 'complete'
 
 export interface DivisionStep {
@@ -15,6 +17,8 @@ export interface Problem {
   dividend: number
   divisor: number
   quotient: number
+  remainder: number
+  difficulty: Difficulty
   residentId: ResidentId
   message: string
   item: string
@@ -24,7 +28,7 @@ export interface GameState {
   coins: number
   items: string[]
   problemsSolved: number
-  screen: 'home' | 'request' | 'division' | 'milestone'
+  screen: 'home' | 'difficulty' | 'request' | 'division' | 'milestone'
   currentProblem: Problem | null
 }
 

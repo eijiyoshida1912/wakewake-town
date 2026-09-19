@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { GameState, Problem } from './types'
+import { Difficulty, GameState } from './types'
 import { getRandomProblem, ITEMS } from './problems'
+import { DIFFICULTIES } from './difficulty'
 
 const STORAGE_KEY = 'wakewake-town-save'
 const MILESTONE = 5
@@ -63,8 +64,16 @@ export function useGameState() {
     })
   }, [hydrated, gameState.coins, gameState.items, gameState.problemsSolved])
 
-  const handleStart = useCallback(() => {
-    const problem = getRandomProblem(gameState.currentProblem?.id)
+  const handleOpenDifficulty = useCallback(() => {
+    setGameState(prev => ({ ...prev, screen: 'difficulty' }))
+  }, [])
+
+  const handleCancelDifficulty = useCallback(() => {
+    setGameState(prev => ({ ...prev, screen: 'home' }))
+  }, [])
+
+  const handleSelectDifficulty = useCallback((difficulty: Difficulty) => {
+    const problem = getRandomProblem(difficulty, gameState.currentProblem?.id)
     setGameState(prev => ({ ...prev, screen: 'request', currentProblem: problem }))
   }, [gameState.currentProblem])
 
@@ -72,8 +81,11 @@ export function useGameState() {
     setGameState(prev => ({ ...prev, screen: 'division' }))
   }, [])
 
-  const handleComplete = useCallback((coinsEarned: number) => {
+  // コインは、挑戦した問題の難易度から決める。筆算画面以外での呼び出し（連打など）は無視する
+  const handleComplete = useCallback(() => {
     setGameState(prev => {
+      if (prev.screen !== 'division' || !prev.currentProblem) return prev
+      const coinsEarned = DIFFICULTIES[prev.currentProblem.difficulty].coins
       const solved = prev.problemsSolved + 1
       const newItems = [...prev.items]
       if (Math.random() < 0.3) {
@@ -100,7 +112,9 @@ export function useGameState() {
   return {
     gameState,
     hydrated,
-    handleStart,
+    handleOpenDifficulty,
+    handleCancelDifficulty,
+    handleSelectDifficulty,
     handleAccept,
     handleComplete,
     handleMilestoneDone,

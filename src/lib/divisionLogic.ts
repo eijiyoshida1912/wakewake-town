@@ -1,127 +1,138 @@
 import { DivisionStep, Problem, BoardSnapshot, WorkingRow } from './types'
 
+/** 筆算の1周分（立てる → かける → ひく）の値 */
+interface Round {
+  /** 商の桁が立つ列（割られる数の左から数えた位置） */
+  col: number
+  /** このラウンドの前におろした数字（最初のラウンドは null） */
+  dropped: number | null
+  /** 今回割る数（前のあまりに、おろした数字を足したもの） */
+  current: number
+  quotient: number
+  product: number
+  remainder: number
+}
+
+function assertValidProblem({ dividend, divisor }: Problem) {
+  if (!Number.isInteger(divisor) || divisor < 1 || divisor > 9) {
+    throw new RangeError(`割る数は 1〜9 の整数にしてください: ${divisor}`)
+  }
+  if (!Number.isInteger(dividend) || dividend < 10 || dividend > 999) {
+    throw new RangeError(`割られる数は 10〜999 の整数にしてください: ${dividend}`)
+  }
+}
+
+function computeRounds(dividend: number, divisor: number): Round[] {
+  const digits = String(dividend).split('').map(Number)
+
+  // 先頭の桁が割る数より小さいときは、最初の2桁をまとめて割る
+  const startCol = digits[0] < divisor ? 1 : 0
+  const firstValue = startCol === 1 ? digits[0] * 10 + digits[1] : digits[0]
+
+  const rounds: Round[] = []
+  for (let col = startCol; col < digits.length; col++) {
+    const previous = rounds[rounds.length - 1]
+    const dropped = previous ? digits[col] : null
+    const current = previous ? previous.remainder * 10 + digits[col] : firstValue
+    const quotient = Math.floor(current / divisor)
+    const product = quotient * divisor
+    rounds.push({ col, dropped, current, quotient, product, remainder: current - product })
+  }
+  return rounds
+}
+
 export function generateSteps(problem: Problem): DivisionStep[] {
-  const { dividend, divisor } = problem
-  const tensDigit = Math.floor(dividend / 10)
-  const unitsDigit = dividend % 10
+  assertValidProblem(problem)
+  const { divisor } = problem
+  const rounds = computeRounds(problem.dividend, divisor)
 
-  const q0 = Math.floor(tensDigit / divisor)
-  const product0 = q0 * divisor
-  const remainder0 = tensDigit - product0
-  const combined = remainder0 * 10 + unitsDigit
-  const q1 = Math.floor(combined / divisor)
-  const product1 = q1 * divisor
-  const remainder1 = combined - product1
+  const steps: DivisionStep[] = []
+  for (const round of rounds) {
+    const { col, dropped, current, quotient, product, remainder } = round
+    if (dropped !== null) {
+      steps.push({ type: 'orosu', question: `${dropped} をおろそう！`, answer: dropped, hint: '', digitCol: col })
+    }
+    steps.push({
+      type: 'tateru',
+      question: `${current} の中に ${divisor} はいくつ入るかな？`,
+      answer: quotient,
+      hint: `${divisor} のだんの九九を思い出してみよう！`,
+      digitCol: col,
+    })
+    steps.push({
+      type: 'kakeru',
+      question: `${quotient} × ${divisor} は？`,
+      answer: product,
+      hint: `${quotient} × ${divisor} の答えは？`,
+      digitCol: col,
+    })
+    steps.push({
+      type: 'hiku',
+      question: `${current} − ${product} は？`,
+      answer: remainder,
+      hint: `${current} から ${product} をひこう`,
+      digitCol: col,
+    })
+  }
 
-  return [
-    {
-      type: 'tateru',
-      question: `${tensDigit} の中に ${divisor} はいくつ入るかな？`,
-      answer: q0,
-      hint: `${divisor} のだんの九九を思い出してみよう！`,
-      digitCol: 0,
-    },
-    {
-      type: 'kakeru',
-      question: `${q0} × ${divisor} は？`,
-      answer: product0,
-      hint: `${q0} × ${divisor} の答えは？`,
-      digitCol: 0,
-    },
-    {
-      type: 'hiku',
-      question: `${tensDigit} − ${product0} は？`,
-      answer: remainder0,
-      hint: `${tensDigit} から ${product0} をひこう`,
-      digitCol: 0,
-    },
-    {
-      type: 'orosu',
-      question: `${unitsDigit} をおろそう！`,
-      answer: unitsDigit,
-      hint: '',
-      digitCol: 1,
-    },
-    {
-      type: 'tateru',
-      question: `${combined} の中に ${divisor} はいくつ入るかな？`,
-      answer: q1,
-      hint: `${divisor} のだんの九九を思い出してみよう！`,
-      digitCol: 1,
-    },
-    {
-      type: 'kakeru',
-      question: `${q1} × ${divisor} は？`,
-      answer: product1,
-      hint: `${q1} × ${divisor} の答えは？`,
-      digitCol: 1,
-    },
-    {
-      type: 'hiku',
-      question: `${combined} − ${product1} は？`,
-      answer: remainder1,
-      hint: `${combined} から ${product1} をひこう`,
-      digitCol: 1,
-    },
-    {
-      type: 'complete',
-      question: 'かんせい！',
-      answer: problem.quotient,
-      hint: '',
-      digitCol: 1,
-    },
-  ]
+  steps.push({
+    type: 'complete',
+    question: 'かんせい！',
+    answer: rounds.reduce((quotient, round) => quotient * 10 + round.quotient, 0),
+    hint: '',
+    digitCol: rounds[rounds.length - 1].col,
+  })
+  return steps
+}
+
+/** value を endCol を右端にして、1桁ずつ複数の列に並べた行を作る */
+function placeRow(
+  label: WorkingRow['label'],
+  value: number,
+  endCol: number,
+  width: number,
+  showLine: boolean,
+): WorkingRow {
+  const valueDigits = String(value).split('').map(Number)
+  const digits: (number | null)[] = Array(width).fill(null)
+  const startCol = endCol - valueDigits.length + 1
+  valueDigits.forEach((digit, i) => {
+    digits[startCol + i] = digit
+  })
+  return { label, digits, showLine }
 }
 
 export function getBoardSnapshot(problem: Problem, stepIndex: number, steps: DivisionStep[]): BoardSnapshot {
-  const { dividend, divisor } = problem
-  const tensDigit = Math.floor(dividend / 10)
-  const unitsDigit = dividend % 10
-
-  const q0 = Math.floor(tensDigit / divisor)
-  const product0 = q0 * divisor
-  const remainder0 = tensDigit - product0
-  const combined = remainder0 * 10 + unitsDigit
-  const q1 = Math.floor(combined / divisor)
-  const product1 = q1 * divisor
-  const remainder1 = combined - product1
-
-  const quotientDigits: (number | null)[] = [null, null]
-  const rows: WorkingRow[] = []
-
-  // Dividend row always shown
-  rows.push({ label: 'dividend', digits: [tensDigit, unitsDigit], showLine: false })
-
-  if (stepIndex >= 1) quotientDigits[0] = q0
-
-  if (stepIndex >= 2) {
-    rows.push({ label: 'product', digits: [product0, null], showLine: true })
+  assertValidProblem(problem)
+  if (!Number.isInteger(stepIndex) || stepIndex < 0 || stepIndex >= steps.length) {
+    throw new RangeError(`ステップ番号は 0〜${steps.length - 1} の整数にしてください: ${stepIndex}`)
   }
 
-  if (stepIndex >= 3) {
-    rows.push({ label: 'remainder', digits: [remainder0, null], showLine: false })
-  }
+  const dividendDigits = String(problem.dividend).split('').map(Number)
+  const width = dividendDigits.length
+  const rounds = computeRounds(problem.dividend, problem.divisor)
 
-  if (stepIndex >= 4) {
-    // orosu: show the dropped digit next to remainder
-    const lastIdx = rows.length - 1
-    if (rows[lastIdx]?.label === 'remainder') {
-      rows[lastIdx] = { label: 'remainder', digits: [remainder0, unitsDigit], showLine: false }
+  const quotientDigits: (number | null)[] = Array(width).fill(null)
+  const rows: WorkingRow[] = [{ label: 'dividend', digits: dividendDigits, showLine: false }]
+
+  // stepIndex より前のステップは「答え合わせが済んだもの」として盤面に反映する
+  let roundIndex = -1
+  for (let i = 0; i < stepIndex; i++) {
+    const step = steps[i]
+    if (step.type === 'tateru') {
+      roundIndex++
+      quotientDigits[rounds[roundIndex].col] = rounds[roundIndex].quotient
+    } else if (step.type === 'kakeru') {
+      const { col, product } = rounds[roundIndex]
+      rows.push(placeRow('product', product, col, width, true))
+    } else if (step.type === 'hiku') {
+      const { col, remainder } = rounds[roundIndex]
+      rows.push(placeRow('remainder', remainder, col, width, false))
+    } else if (step.type === 'orosu') {
+      // おろした数字は、直前のあまりの行の右隣に出る
+      rows[rows.length - 1].digits[step.digitCol] = step.answer
     }
   }
 
-  if (stepIndex >= 5) quotientDigits[1] = q1
-
-  if (stepIndex >= 6) {
-    rows.push({ label: 'product', digits: [null, product1], showLine: true })
-  }
-
-  if (stepIndex >= 7) {
-    rows.push({ label: 'remainder', digits: [null, remainder1], showLine: false })
-  }
-
-  const currentStep = steps[stepIndex]
-  const activeCol = currentStep?.digitCol ?? 1
-
-  return { quotientDigits, rows, activeCol }
+  return { quotientDigits, rows, activeCol: steps[stepIndex].digitCol }
 }

@@ -24,6 +24,8 @@ export default function LongDivisionBoard({ dividend, divisor, snapshot, stepTyp
       <div className="flex flex-col">
         {/* Quotient row */}
         <div className="flex mb-1">
+          {/* 被除数の行の括弧と同じ幅の余白（商の桁を被除数の桁の真上に揃える） */}
+          <div className="w-3" />
           {quotientDigits.map((d, col) => (
             <div
               key={col}
@@ -62,8 +64,9 @@ export default function LongDivisionBoard({ dividend, divisor, snapshot, stepTyp
               {row.showLine && (
                 <div className="flex">
                   <div className="w-3" />
-                  <div className={`w-10 md:w-14 ${row.digits[0] !== null ? 'border-t-2 border-gray-500' : ''}`} />
-                  <div className={`w-10 md:w-14 ${row.digits[1] !== null ? 'border-t-2 border-gray-500' : ''}`} />
+                  {row.digits.map((d, col) => (
+                    <div key={col} className={`w-10 md:w-14 ${d !== null ? 'border-t-2 border-gray-500' : ''}`} />
+                  ))}
                 </div>
               )}
               <div className="flex items-center">

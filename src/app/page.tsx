@@ -2,6 +2,7 @@
 
 import { useGameState } from '@/lib/useGameState'
 import TownHome from '@/components/TownHome'
+import DifficultySelect from '@/components/DifficultySelect'
 import RequestScene from '@/components/RequestScene'
 import LongDivisionGame from '@/components/LongDivisionGame'
 import MilestoneScreen from '@/components/MilestoneScreen'
@@ -10,7 +11,9 @@ export default function Home() {
   const {
     gameState,
     hydrated,
-    handleStart,
+    handleOpenDifficulty,
+    handleCancelDifficulty,
+    handleSelectDifficulty,
     handleAccept,
     handleComplete,
     handleMilestoneDone,
@@ -21,7 +24,9 @@ export default function Home() {
 
   switch (gameState.screen) {
     case 'home':
-      return <TownHome gameState={gameState} onStart={handleStart} />
+      return <TownHome gameState={gameState} onStart={handleOpenDifficulty} />
+    case 'difficulty':
+      return <DifficultySelect onSelect={handleSelectDifficulty} onBack={handleCancelDifficulty} />
     case 'request':
       if (!gameState.currentProblem) return null
       return <RequestScene problem={gameState.currentProblem} onAccept={handleAccept} />
