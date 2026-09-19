@@ -28,12 +28,14 @@ export interface GameState {
   coins: number
   items: string[]
   problemsSolved: number
-  screen: 'home' | 'difficulty' | 'request' | 'division' | 'reward' | 'milestone'
+  screen: 'home' | 'difficulty' | 'request' | 'division' | 'reward' | 'milestone' | 'shop'
   currentProblem: Problem | null
   /** お祝い画面（reward）で見せる、いまもらったアイテム */
   rewardItem: string | null
   /** お祝いのあとに、節目画面（milestone）を挟むか */
   milestoneAfterReward: boolean
+  /** お店で、いま買ったアイテム（「○○をかったよ！」を出す） */
+  purchasedItem: string | null
 }
 
 export interface WorkingRow {

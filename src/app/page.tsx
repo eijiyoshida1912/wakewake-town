@@ -6,6 +6,7 @@ import DifficultySelect from '@/components/DifficultySelect'
 import RequestScene from '@/components/RequestScene'
 import LongDivisionGame from '@/components/LongDivisionGame'
 import RewardScreen from '@/components/RewardScreen'
+import ShopScreen from '@/components/ShopScreen'
 import MilestoneScreen from '@/components/MilestoneScreen'
 
 export default function Home() {
@@ -18,6 +19,9 @@ export default function Home() {
     handleAccept,
     handleComplete,
     handleRewardDone,
+    handleOpenShop,
+    handleCloseShop,
+    handleBuy,
     handleMilestoneDone,
   } = useGameState()
 
@@ -26,7 +30,7 @@ export default function Home() {
 
   switch (gameState.screen) {
     case 'home':
-      return <TownHome gameState={gameState} onStart={handleOpenDifficulty} />
+      return <TownHome gameState={gameState} onStart={handleOpenDifficulty} onOpenShop={handleOpenShop} />
     case 'difficulty':
       return <DifficultySelect onSelect={handleSelectDifficulty} onBack={handleCancelDifficulty} />
     case 'request':
@@ -42,6 +46,16 @@ export default function Home() {
           item={gameState.rewardItem}
           residentId={gameState.currentProblem.residentId}
           onDone={handleRewardDone}
+        />
+      )
+    case 'shop':
+      return (
+        <ShopScreen
+          coins={gameState.coins}
+          items={gameState.items}
+          purchasedItem={gameState.purchasedItem}
+          onBuy={handleBuy}
+          onBack={handleCloseShop}
         />
       )
     case 'milestone':

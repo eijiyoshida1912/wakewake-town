@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Difficulty, GameState } from './types'
-import { getRandomProblem, ITEMS } from './problems'
+import { getRandomProblem } from './problems'
 import { DIFFICULTIES } from './difficulty'
+import { ITEMS } from './items'
+import { buyItem } from './shop'
 
 const STORAGE_KEY = 'wakewake-town-save'
 const MILESTONE = 5
@@ -46,6 +48,7 @@ export function useGameState() {
     currentProblem: null,
     rewardItem: null,
     milestoneAfterReward: false,
+    purchasedItem: null,
   })
   const [hydrated, setHydrated] = useState(false)
 
@@ -125,6 +128,24 @@ export function useGameState() {
     })
   }, [])
 
+  const handleOpenShop = useCallback(() => {
+    setGameState(prev => ({ ...prev, screen: 'shop', purchasedItem: null }))
+  }, [])
+
+  const handleCloseShop = useCallback(() => {
+    setGameState(prev => ({ ...prev, screen: 'home', purchasedItem: null }))
+  }, [])
+
+  // お店の画面以外での呼び出し、買えないアイテム（コイン不足・持っている・お店にない）は無視する
+  const handleBuy = useCallback((name: string) => {
+    setGameState(prev => {
+      if (prev.screen !== 'shop') return prev
+      const result = buyItem(prev.coins, prev.items, name)
+      if (!result.ok) return prev
+      return { ...prev, coins: result.coins, items: result.items, purchasedItem: name }
+    })
+  }, [])
+
   const handleMilestoneDone = useCallback(() => {
     setGameState(prev => ({ ...prev, screen: 'home' }))
   }, [])
@@ -138,6 +159,9 @@ export function useGameState() {
     handleAccept,
     handleComplete,
     handleRewardDone,
+    handleOpenShop,
+    handleCloseShop,
+    handleBuy,
     handleMilestoneDone,
   }
 }

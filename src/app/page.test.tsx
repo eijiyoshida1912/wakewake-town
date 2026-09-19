@@ -88,3 +88,43 @@ describe('アイテムをもらったときのお祝い（ページ全体）', (
     expect(screen.getByText('1 こ')).toBeDefined()
   })
 })
+
+describe('お店と町のかざり（ページ全体）', () => {
+  const seed = (coins: number, items: string[] = []) =>
+    localStorage.setItem('wakewake-town-save', JSON.stringify({ coins, items, problemsSolved: 0 }))
+
+  it('ホームの町のかざりは、最初はすべて「？」で「0 / 8」', () => {
+    render(<Home />)
+    expect(screen.getByText('0 / 8')).toBeDefined()
+    expect(screen.getAllByText('？')).toHaveLength(8)
+  })
+
+  it('コインで買えるものがあるときだけ、ホームの「おみせ」に「かえるものがあるよ！」が出る', () => {
+    seed(29)
+    render(<Home />)
+    expect(screen.queryByText(/かえるものがあるよ/)).toBeNull()
+    cleanup()
+    seed(30)
+    render(<Home />)
+    expect(screen.getByText(/かえるものがあるよ/)).toBeDefined()
+  })
+
+  it('おみせでぼうしを買う → コインが減る → もどると、町のかざりにぼうしが並ぶ', () => {
+    seed(100)
+    render(<Home />)
+    fireEvent.click(screen.getByRole('button', { name: /おみせ/ }))
+    expect(screen.getByRole('heading', { name: /おみせ/ })).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: 'ぼうしをかう' }))
+    expect(screen.getByText(/ぼうしをかったよ！/)).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'ぼうしをかう' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /もどる/ }))
+    expect(screen.getByRole('button', { name: /おねがいをきく/ })).toBeDefined()
+    expect(screen.getAllByRole('listitem').map(li => li.textContent)).toContain('🎩ぼうし')
+    expect(screen.getByText('1 / 8')).toBeDefined()
+    // コインは、ヘッダーと「もっているコイン」の2か所に出る
+    expect(screen.getAllByText(/🪙\s*70/)).toHaveLength(2)
+    expect(JSON.parse(localStorage.getItem('wakewake-town-save') ?? 'null')).toMatchObject({ coins: 70, items: ['ぼうし'] })
+  })
+})

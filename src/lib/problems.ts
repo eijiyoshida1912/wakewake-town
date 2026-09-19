@@ -58,8 +58,6 @@ export const PROBLEMS: Problem[] = [
   createProblem({ id: 30, dividend: 907, divisor: 3, difficulty: 'challenge', residentId: 'bear', message: 'どんぐりパンが907こ焼けたよ！\n3びきで分けたら、あまりはいくつ？', item: 'どんぐりパン' }),
 ]
 
-export const ITEMS = ['いす', 'ランプ', 'クッション', '観葉植物', 'ぬいぐるみ', 'ぼうし', 'テーブル', 'フラワーポット']
-
 export function getProblemsByDifficulty(difficulty: Difficulty): Problem[] {
   return PROBLEMS.filter(p => p.difficulty === difficulty)
 }

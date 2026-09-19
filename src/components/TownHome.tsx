@@ -1,14 +1,16 @@
 'use client'
 
 import { GameState } from '@/lib/types'
-import { getItemEmoji } from '@/lib/items'
+import { canAffordAny } from '@/lib/shop'
+import TownDecorations from './TownDecorations'
 
 interface TownHomeProps {
   gameState: GameState
   onStart: () => void
+  onOpenShop: () => void
 }
 
-export default function TownHome({ gameState, onStart }: TownHomeProps) {
+export default function TownHome({ gameState, onStart, onOpenShop }: TownHomeProps) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-200 to-green-200 flex flex-col">
       <div className="bg-white/80 backdrop-blur px-4 py-3 flex justify-between items-center shadow-sm">
@@ -56,19 +58,17 @@ export default function TownHome({ gameState, onStart }: TownHomeProps) {
           </div>
         </div>
 
-        {gameState.items.length > 0 && (
-          <div className="w-full bg-white/80 rounded-2xl p-4 shadow border border-white">
-            <p className="text-sm font-bold text-gray-600 mb-2">📦 もっているもの</p>
-            <div className="flex flex-wrap gap-2">
-              {gameState.items.map((item, i) => (
-                <div key={i} className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-center">
-                  <div className="text-2xl">{getItemEmoji(item)}</div>
-                  <p className="text-xs text-gray-500">{item}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <TownDecorations items={gameState.items} />
+
+        <button
+          onClick={onOpenShop}
+          className="w-full bg-amber-300 hover:bg-amber-400 text-amber-900 font-bold text-xl py-4 rounded-2xl shadow-lg transition-all active:scale-95 border-b-4 border-amber-500"
+        >
+          🛒 おみせにいく
+          {canAffordAny(gameState.coins, gameState.items) && (
+            <span className="ml-2 rounded-full bg-red-500 px-2 py-0.5 text-xs text-white">かえるものがあるよ！</span>
+          )}
+        </button>
 
         {gameState.problemsSolved > 0 && (
           <div className="w-full bg-green-50 rounded-2xl p-3 border border-green-200 text-center">

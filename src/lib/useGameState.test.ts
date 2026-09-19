@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useGameState } from './useGameState'
-import { getProblemsByDifficulty, ITEMS } from './problems'
+import { getProblemsByDifficulty } from './problems'
+import { ITEMS } from './items'
 import { Difficulty } from './types'
 
 const STORAGE_KEY = 'wakewake-town-save'
@@ -276,5 +277,126 @@ describe('useGameState: アイテムをもらったときのお祝い', () => {
       result.current.handleRewardDone()
     })
     expect(result.current.gameState.screen).toBe('milestone')
+  })
+})
+
+describe('useGameState: お店', () => {
+  function withCoins(coins: number, items: string[] = []) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ coins, items, problemsSolved: 0 }))
+  }
+
+  it('ホームから「おみせ」に行き、もどるとホームに戻る', () => {
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenShop())
+    expect(result.current.gameState.screen).toBe('shop')
+    act(() => result.current.handleCloseShop())
+    expect(result.current.gameState.screen).toBe('home')
+  })
+
+  it('買うと、値段ぶんコインが減り、アイテムが増え、「買ったもの」が分かる（いす 80: 100 → 20）', () => {
+    withCoins(100)
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenShop())
+    act(() => result.current.handleBuy('いす'))
+    expect(result.current.gameState).toMatchObject({
+      coins: 20,
+      items: ['いす'],
+      purchasedItem: 'いす',
+      screen: 'shop',
+    })
+  })
+
+  it('ちょうどのコイン（ぼうし 30 に 30）で買えて、コインは 0 になる（境界値）', () => {
+    withCoins(30)
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenShop())
+    act(() => result.current.handleBuy('ぼうし'))
+    expect(result.current.gameState).toMatchObject({ coins: 0, items: ['ぼうし'] })
+  })
+
+  it('コインが1つ足りない（29）と、何も変わらない', () => {
+    withCoins(29)
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenShop())
+    act(() => result.current.handleBuy('ぼうし'))
+    expect(result.current.gameState).toMatchObject({ coins: 29, items: [], purchasedItem: null })
+  })
+
+  it('もう持っているアイテムを買おうとしても、何も変わらない', () => {
+    withCoins(100, ['ぼうし'])
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenShop())
+    act(() => result.current.handleBuy('ぼうし'))
+    expect(result.current.gameState).toMatchObject({ coins: 100, items: ['ぼうし'], purchasedItem: null })
+  })
+
+  it('お店にないアイテムを買おうとしても、何も変わらない', () => {
+    withCoins(100)
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenShop())
+    act(() => result.current.handleBuy('ふしぎなもの'))
+    expect(result.current.gameState).toMatchObject({ coins: 100, items: [], purchasedItem: null })
+  })
+
+  it('お店の画面以外で買おうとしても、何も変わらない', () => {
+    withCoins(100)
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleBuy('ぼうし'))
+    expect(result.current.gameState).toMatchObject({ coins: 100, items: [] })
+  })
+
+  it('同じアイテムを続けて2回買おうとしても、コインは1回分だけ（連打対策）', () => {
+    withCoins(100)
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenShop())
+    act(() => {
+      result.current.handleBuy('ぼうし')
+      result.current.handleBuy('ぼうし')
+    })
+    expect(result.current.gameState).toMatchObject({ coins: 70, items: ['ぼうし'] })
+  })
+
+  it('続けて別のアイテムを買うと、「買ったもの」が新しいほうに変わる', () => {
+    withCoins(100)
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenShop())
+    act(() => result.current.handleBuy('ぼうし'))
+    act(() => result.current.handleBuy('ぬいぐるみ'))
+    expect(result.current.gameState).toMatchObject({ coins: 30, items: ['ぼうし', 'ぬいぐるみ'], purchasedItem: 'ぬいぐるみ' })
+  })
+
+  it('お店に入り直すと、「買ったもの」は消える', () => {
+    withCoins(100)
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenShop())
+    act(() => result.current.handleBuy('ぼうし'))
+    act(() => result.current.handleCloseShop())
+    expect(result.current.gameState.purchasedItem).toBeNull()
+    act(() => result.current.handleOpenShop())
+    expect(result.current.gameState.purchasedItem).toBeNull()
+  })
+
+  it('買った結果（コインとアイテム）が保存され、次回の起動でも残っている', () => {
+    withCoins(100)
+    const first = renderHook(() => useGameState())
+    act(() => first.result.current.handleOpenShop())
+    act(() => first.result.current.handleBuy('ぼうし'))
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')).toEqual({
+      coins: 70,
+      items: ['ぼうし'],
+      problemsSolved: 0,
+    })
+    first.unmount()
+    const second = renderHook(() => useGameState())
+    expect(second.result.current.gameState).toMatchObject({ coins: 70, items: ['ぼうし'] })
+  })
+
+  it('買ったアイテムは、ランダムにもらえるアイテムから外れる（残り1つの「いす」だけがもらえる）', () => {
+    const owned = ITEMS.filter(name => name !== 'いす')
+    withCoins(0, owned)
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { result } = renderHook(() => useGameState())
+    playRound(result, 'easy')
+    expect(result.current.gameState).toMatchObject({ screen: 'reward', rewardItem: 'いす' })
   })
 })
