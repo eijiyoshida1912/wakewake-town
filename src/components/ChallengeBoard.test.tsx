@@ -126,6 +126,96 @@ describe('ChallengeBoard: 入力と判定', () => {
   })
 })
 
+describe('ChallengeBoard: 「できた！」ボタン', () => {
+  const pressDone = () => fireEvent.click(screen.getByRole('button', { name: 'できた！' }))
+
+  it('数字ボタンと一緒に、「できた！」ボタンがある', () => {
+    render(<ChallengeBoard problem={problem259} onSolved={() => {}} />)
+    expect(screen.getByRole('button', { name: 'できた！' })).toBeDefined()
+  })
+
+  it('何も書かずに押すと「まだ書いていないところがあるよ」と出るだけで、完成しない', () => {
+    vi.useFakeTimers()
+    const onSolved = vi.fn()
+    render(<ChallengeBoard problem={problem259} onSolved={onSolved} />)
+    pressDone()
+    expect(screen.getByRole('alert').textContent).toMatch(/まだ書いていないところがあるよ/)
+    act(() => {
+      vi.advanceTimersByTime(5000)
+    })
+    expect(onSolved).not.toHaveBeenCalled()
+  })
+
+  it('メッセージは、どのマスが足りないかも、残りの数も教えない（ヒントなし）', () => {
+    render(<ChallengeBoard problem={problem259} onSolved={() => {}} />)
+    pressDone()
+    expect(screen.getByRole('alert').textContent).not.toMatch(/\d/)
+    for (const c of getChallengeCells(problem259)) {
+      const button = cell(getCellLabel(c))
+      expect(button.getAttribute('data-wrong')).not.toBe('true')
+      expect(button.getAttribute('aria-pressed')).not.toBe('true')
+    }
+  })
+
+  it('1マスだけ足りない（あまりのマスが未入力）ときも、同じメッセージで完成しない', () => {
+    vi.useFakeTimers()
+    const onSolved = vi.fn()
+    render(<ChallengeBoard problem={problem259} onSolved={onSolved} />)
+    for (const c of getChallengeCells(problem259)) {
+      if (c.expected !== null && c.key !== 'r-1-2') enter(getCellLabel(c), c.expected)
+    }
+    pressDone()
+    expect(screen.getByRole('alert').textContent).toMatch(/まだ書いていないところがあるよ/)
+    act(() => {
+      vi.advanceTimersByTime(5000)
+    })
+    expect(onSolved).not.toHaveBeenCalled()
+  })
+
+  it('すべて書けているときに押すと、待たずにすぐ完成し、onSolved は1回だけ呼ばれる', () => {
+    vi.useFakeTimers()
+    const onSolved = vi.fn()
+    render(<ChallengeBoard problem={problem259} onSolved={onSolved} />)
+    solveAll(problem259)
+    expect(onSolved).not.toHaveBeenCalled()
+    pressDone()
+    expect(onSolved).toHaveBeenCalledTimes(1)
+    // そのあと自動の完成タイマーが来ても、2回目は呼ばれない
+    act(() => {
+      vi.advanceTimersByTime(5000)
+    })
+    expect(onSolved).toHaveBeenCalledTimes(1)
+  })
+
+  it('省略できる 0 を書いていなくても、ほかが正しければ押すと完成する（857 ÷ 4）', () => {
+    const onSolved = vi.fn()
+    const problem857 = makeProblem(857, 4, 214, 1)
+    render(<ChallengeBoard problem={problem857} onSolved={onSolved} />)
+    for (const c of getChallengeCells(problem857)) {
+      if (c.expected !== null && c.key !== 'r-0-0') enter(getCellLabel(c), c.expected)
+    }
+    pressDone()
+    expect(onSolved).toHaveBeenCalledTimes(1)
+  })
+
+  it('メッセージは、マスを選び直すと消える', () => {
+    render(<ChallengeBoard problem={problem259} onSolved={() => {}} />)
+    pressDone()
+    expect(screen.queryByRole('alert')).not.toBeNull()
+    fireEvent.click(cell('しょう 2れつめ'))
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('メッセージのあとにまちがえると、「おしい」だけが出る（メッセージが重ならない）', () => {
+    render(<ChallengeBoard problem={problem259} onSolved={() => {}} />)
+    pressDone()
+    enter('しょう 2れつめ', 5)
+    const alerts = screen.getAllByRole('alert')
+    expect(alerts).toHaveLength(1)
+    expect(alerts[0].textContent).toMatch(/おしい/)
+  })
+})
+
 describe('ChallengeBoard: 完成', () => {
   it('正解のマスをすべて埋めると、少し待ってから onSolved が1回だけ呼ばれる', () => {
     vi.useFakeTimers()

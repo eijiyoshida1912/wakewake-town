@@ -25,6 +25,8 @@ export default function ChallengeBoard({ problem, onSolved }: ChallengeBoardProp
   const [filled, setFilled] = useState<Record<string, number>>({})
   const [selected, setSelected] = useState<string | null>(null)
   const [wrongKey, setWrongKey] = useState<string | null>(null)
+  // 「できた！」を押したのに足りなかったときの、「まだ書いていないところがあるよ」を出すか
+  const [showIncomplete, setShowIncomplete] = useState(false)
 
   const cells = getChallengeCells(problem)
   const width = String(problem.dividend).length
@@ -36,14 +38,23 @@ export default function ChallengeBoard({ problem, onSolved }: ChallengeBoardProp
     onSolvedRef.current = onSolved
   })
 
+  // 自動の完成タイマーと「できた！」ボタンのどちらが先でも、onSolved は1回だけ呼ぶ
+  const notifiedRef = useRef(false)
+  const notifySolved = () => {
+    if (notifiedRef.current) return
+    notifiedRef.current = true
+    onSolvedRef.current()
+  }
+
   useEffect(() => {
     if (!solved) return
-    const timer = setTimeout(() => onSolvedRef.current(), SOLVED_DELAY_MS)
+    const timer = setTimeout(notifySolved, SOLVED_DELAY_MS)
     return () => clearTimeout(timer)
   }, [solved])
 
   const handleDigit = (digit: number) => {
     if (selected === null) return
+    setShowIncomplete(false)
     if (judgeCell(problem, selected, digit)) {
       setFilled(prev => ({ ...prev, [selected]: digit }))
       setSelected(null)
@@ -51,6 +62,12 @@ export default function ChallengeBoard({ problem, onSolved }: ChallengeBoardProp
     } else {
       setWrongKey(selected)
     }
+  }
+
+  // 足りないときは、どのマスかは教えずに、足りないことだけ伝える
+  const handleDone = () => {
+    if (solved) notifySolved()
+    else setShowIncomplete(true)
   }
 
   const renderCell = (cell: ChallengeCell, extraClass = '') => {
@@ -75,6 +92,7 @@ export default function ChallengeBoard({ problem, onSolved }: ChallengeBoardProp
         onClick={() => {
           setSelected(cell.key)
           setWrongKey(null)
+          setShowIncomplete(false)
         }}
         className={`w-10 h-10 md:w-14 md:h-12 flex items-center justify-center rounded-lg border-2 text-xl md:text-2xl font-bold font-mono transition-all ${stateClass} ${extraClass}`}
       >
@@ -130,6 +148,10 @@ export default function ChallengeBoard({ problem, onSolved }: ChallengeBoardProp
           <p role="alert" className="rounded-2xl border-2 border-red-200 bg-red-50 p-3 font-bold text-red-600">
             おしい！もういちど考えてみよう 🤔
           </p>
+        ) : showIncomplete ? (
+          <p role="alert" className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-3 font-bold text-amber-700">
+            まだ書いていないところがあるよ ✏️
+          </p>
         ) : solved ? (
           <p className="rounded-2xl border-2 border-green-300 bg-green-50 p-3 text-lg font-bold text-green-600">
             ✨ ぜんぶできた！
@@ -151,6 +173,14 @@ export default function ChallengeBoard({ problem, onSolved }: ChallengeBoardProp
             {digit}
           </button>
         ))}
+        {/* 数字の 0 の右どなり（あいているマス）に置く。押すと、書き終わったかを確かめる */}
+        <button
+          type="button"
+          onClick={handleDone}
+          className="w-16 h-16 md:w-20 md:h-20 bg-blue-400 hover:bg-blue-500 rounded-2xl text-sm md:text-lg font-bold text-white shadow-md transition-all active:scale-95"
+        >
+          できた！
+        </button>
       </div>
     </div>
   )
