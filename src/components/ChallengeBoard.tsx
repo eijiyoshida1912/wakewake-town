@@ -161,7 +161,7 @@ export default function ChallengeBoard({ problem, onSolved }: ChallengeBoardProp
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div role="group" aria-label="すうじ" className="grid grid-cols-3 gap-2">
         {PAD_ROWS.flat().map(digit => (
           <button
             key={digit}

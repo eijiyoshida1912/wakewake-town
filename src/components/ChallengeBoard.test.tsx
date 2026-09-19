@@ -12,13 +12,19 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
+// 何十回も探すので、全ボタンを調べる getByRole ではなく、ラベルと「すうじ」のまとまりの中で探す
+// （getByRole は遅く、全体を並列で流すとタイムアウトしていた）
 function cell(label: string) {
-  return screen.getByRole('button', { name: label })
+  return screen.getByLabelText(label)
+}
+
+function digitButton(digit: number) {
+  return within(screen.getByLabelText('すうじ')).getByText(String(digit))
 }
 
 function enter(label: string, digit: number) {
   fireEvent.click(cell(label))
-  fireEvent.click(screen.getByRole('button', { name: String(digit) }))
+  fireEvent.click(digitButton(digit))
 }
 
 /** 正解のマスを、上から順にすべて入力する */
@@ -66,10 +72,17 @@ describe('ChallengeBoard: 表示', () => {
     expect(screen.queryByText(/ヒント|💡/)).toBeNull()
   })
 
+  it('数字ボタン（0〜9）と「できた！」が、「すうじ」のまとまりの中にある', () => {
+    render(<ChallengeBoard problem={problem259} onSolved={() => {}} />)
+    const pad = within(screen.getByRole('group', { name: 'すうじ' }))
+    for (let d = 0; d <= 9; d++) expect(pad.getByText(String(d))).toBeDefined()
+    expect(pad.getByText('できた！')).toBeDefined()
+  })
+
   it('マスを選ぶまでは、数字ボタンは押せない', () => {
     render(<ChallengeBoard problem={problem259} onSolved={() => {}} />)
     for (let d = 0; d <= 9; d++) {
-      expect((screen.getByRole('button', { name: String(d) }) as HTMLButtonElement).disabled).toBe(true)
+      expect((digitButton(d) as HTMLButtonElement).disabled).toBe(true)
     }
   })
 })

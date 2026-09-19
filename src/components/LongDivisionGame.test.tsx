@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
-import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, act, within } from '@testing-library/react'
 import LongDivisionGame from './LongDivisionGame'
 import { getChallengeCells, getCellLabel } from '@/lib/challengeBoard'
 import { makeProblem } from '@/test/fixtures'
@@ -166,8 +166,8 @@ describe('LongDivisionGame: 補助なし（チャレンジ）', () => {
 
     for (const cell of getChallengeCells(challengeProblem)) {
       if (cell.expected === null) continue
-      fireEvent.click(screen.getByRole('button', { name: getCellLabel(cell) }))
-      fireEvent.click(screen.getByRole('button', { name: String(cell.expected) }))
+      fireEvent.click(screen.getByLabelText(getCellLabel(cell)))
+      fireEvent.click(within(screen.getByLabelText('すうじ')).getByText(String(cell.expected)))
     }
     expect(screen.queryByText('＋30コイン！🪙')).toBeNull()
     advance(1000)
