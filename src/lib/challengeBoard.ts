@@ -12,6 +12,12 @@ export interface ChallengeCell {
   col: number
   /** 正解の数字。null は「空欄のままが正解」のマス */
   expected: number | null
+  /**
+   * true なら、空欄のままでも 0 を書いても正解のマス。
+   * ひき算の答えが 0 で、同じ行に次の数をおろす場合の「0」（例: 8 − 8 = 0 に 5 をおろして 05）。
+   * 手で書くときは 0 を省略して 5 だけ書くのが普通なので、どちらでも完成にする。
+   */
+  optional: boolean
 }
 
 /**
@@ -25,16 +31,25 @@ export function getChallengeCells(problem: Problem): ChallengeCell[] {
 
   const cells: ChallengeCell[] = []
   for (let col = 0; col < width; col++) {
-    cells.push({ key: `q-${col}`, kind: 'quotient', round: 0, col, expected: solved.quotientDigits[col] })
+    cells.push({ key: `q-${col}`, kind: 'quotient', round: 0, col, expected: solved.quotientDigits[col], optional: false })
   }
   for (let round = 0; round < width; round++) {
     const productRow = solved.rows[1 + round * 2]
     const remainderRow = solved.rows[2 + round * 2]
     for (let col = 0; col < width; col++) {
-      cells.push({ key: `p-${round}-${col}`, kind: 'product', round, col, expected: productRow?.digits[col] ?? null })
+      cells.push({ key: `p-${round}-${col}`, kind: 'product', round, col, expected: productRow?.digits[col] ?? null, optional: false })
     }
     for (let col = 0; col < width; col++) {
-      cells.push({ key: `r-${round}-${col}`, kind: 'remainder', round, col, expected: remainderRow?.digits[col] ?? null })
+      const expected = remainderRow?.digits[col] ?? null
+      const hasDroppedDigitNext = (remainderRow?.digits[col + 1] ?? null) !== null
+      cells.push({
+        key: `r-${round}-${col}`,
+        kind: 'remainder',
+        round,
+        col,
+        expected,
+        optional: expected === 0 && hasDroppedDigitNext,
+      })
     }
   }
   return cells
@@ -57,9 +72,14 @@ export function judgeCell(problem: Problem, key: string, digit: number): boolean
   return cell.expected === digit
 }
 
-/** 正解のマスがすべて正しく埋まっていて、空欄が正解のマスには何も入っていなければ true */
+/**
+ * 正解のマスがすべて正しく埋まっていて、空欄が正解のマスには何も入っていなければ true。
+ * 省略できる 0（optional）は、書いていなくても、0 を書いていても構わない。
+ */
 export function isChallengeSolved(problem: Problem, filled: Record<string, number>): boolean {
-  return getChallengeCells(problem).every(cell =>
-    cell.expected === null ? !(cell.key in filled) : filled[cell.key] === cell.expected,
-  )
+  return getChallengeCells(problem).every(cell => {
+    if (cell.expected === null) return !(cell.key in filled)
+    if (cell.optional) return !(cell.key in filled) || filled[cell.key] === cell.expected
+    return filled[cell.key] === cell.expected
+  })
 }

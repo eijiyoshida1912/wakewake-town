@@ -139,6 +139,36 @@ describe('ChallengeBoard: 完成', () => {
     expect(onSolved).toHaveBeenCalledTimes(1)
   })
 
+  it('ひき算の答えの 0 を書かず、次の数だけをおろす書き方でも完成する（857 ÷ 4 の 8 − 8 = 0）', () => {
+    vi.useFakeTimers()
+    const onSolved = vi.fn()
+    const problem857 = makeProblem(857, 4, 214, 1)
+    render(<ChallengeBoard problem={problem857} onSolved={onSolved} />)
+    for (const c of getChallengeCells(problem857)) {
+      if (c.expected !== null && c.key !== 'r-0-0') enter(getCellLabel(c), c.expected)
+    }
+    expect(cell('ひき算 1かいめ 1れつめ').textContent).toBe('')
+    act(() => {
+      vi.advanceTimersByTime(1000)
+    })
+    expect(onSolved).toHaveBeenCalledTimes(1)
+  })
+
+  it('その 0 を書いても完成し、0 以外の数字を書くとまちがいになる（857 ÷ 4）', () => {
+    vi.useFakeTimers()
+    const onSolved = vi.fn()
+    const problem857 = makeProblem(857, 4, 214, 1)
+    render(<ChallengeBoard problem={problem857} onSolved={onSolved} />)
+    enter('ひき算 1かいめ 1れつめ', 5)
+    expect(cell('ひき算 1かいめ 1れつめ').getAttribute('data-wrong')).toBe('true')
+    solveAll(problem857)
+    expect(cell('ひき算 1かいめ 1れつめ').textContent).toBe('0')
+    act(() => {
+      vi.advanceTimersByTime(1000)
+    })
+    expect(onSolved).toHaveBeenCalledTimes(1)
+  })
+
   it('1マスでも足りなければ、時間が経っても onSolved は呼ばれない（あまりのマスだけ未入力）', () => {
     vi.useFakeTimers()
     const onSolved = vi.fn()
