@@ -236,7 +236,12 @@ describe('ブラウザの「戻る」（ページ全体）', () => {
 
   it('お祝い画面・節目画面でも、ブラウザの戻るを押してもその場にとどまる。ボタンで進めばホームに戻る', () => {
     vi.useFakeTimers()
-    localStorage.setItem('wakewake-town-save', JSON.stringify({ coins: 0, items: [], problemsSolved: 4 }))
+    // 通算は 20、きょうは 4。きょうの5つ目で節目になる（通算の 21 ではない）
+    vi.setSystemTime(new Date(2026, 8, 20, 10, 0))
+    localStorage.setItem(
+      'wakewake-town-save',
+      JSON.stringify({ coins: 0, items: [], problemsSolved: 20, solvedToday: 4, solvedDate: '2026-09-20' }),
+    )
     render(<Home />)
     vi.spyOn(Math, 'random').mockReturnValue(0)
     start(/かんたん/)
@@ -250,6 +255,9 @@ describe('ブラウザの「戻る」（ページ全体）', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /やったー/ }))
     expect(screen.getByRole('button', { name: /もっと遊ぶ/ })).toBeDefined()
+    expect(screen.getByText('きょうのお手伝い')).toBeDefined()
+    expect(screen.getByText('5こ')).toBeDefined()
+    expect(screen.queryByText('21こ')).toBeNull()
     pressBrowserBack()
     expect(screen.getByRole('button', { name: /もっと遊ぶ/ })).toBeDefined()
 

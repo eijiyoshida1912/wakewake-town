@@ -27,7 +27,12 @@ export interface Problem {
 export interface GameState {
   coins: number
   items: string[]
+  /** これまでに解いた数（通算） */
   problemsSolved: number
+  /** きょう解いた数。solvedDate の日の分だけを数える（日が変わったら、次に解くとき 1 から数え直す） */
+  solvedToday: number
+  /** solvedToday を数えた日（「2026-09-20」の形。まだ数えていなければ空） */
+  solvedDate: string
   screen: 'home' | 'difficulty' | 'request' | 'division' | 'reward' | 'milestone' | 'shop'
   currentProblem: Problem | null
   /** お祝い画面（reward）で見せる、いまもらったアイテム */

@@ -6,6 +6,7 @@ import { getRandomProblem } from './problems'
 import { DIFFICULTIES } from './difficulty'
 import { ITEMS } from './items'
 import { buyItem } from './shop'
+import { toDateKey, nextDailyCount } from './dailyCount'
 
 const STORAGE_KEY = 'wakewake-town-save'
 const MILESTONE = 5
@@ -14,20 +15,27 @@ interface SaveData {
   coins: number
   items: string[]
   problemsSolved: number
+  solvedToday: number
+  solvedDate: string
 }
+
+const EMPTY_SAVE: SaveData = { coins: 0, items: [], problemsSolved: 0, solvedToday: 0, solvedDate: '' }
 
 function loadSaveData(): SaveData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return { coins: 0, items: [], problemsSolved: 0 }
+    if (!raw) return EMPTY_SAVE
     const parsed = JSON.parse(raw)
     return {
       coins: typeof parsed.coins === 'number' ? parsed.coins : 0,
       items: Array.isArray(parsed.items) ? parsed.items : [],
       problemsSolved: typeof parsed.problemsSolved === 'number' ? parsed.problemsSolved : 0,
+      // 前のバージョンの保存データには、きょうの数はない（0 から始める）
+      solvedToday: typeof parsed.solvedToday === 'number' ? parsed.solvedToday : 0,
+      solvedDate: typeof parsed.solvedDate === 'string' ? parsed.solvedDate : '',
     }
   } catch {
-    return { coins: 0, items: [], problemsSolved: 0 }
+    return EMPTY_SAVE
   }
 }
 
@@ -44,6 +52,8 @@ export function useGameState() {
     coins: 0,
     items: [],
     problemsSolved: 0,
+    solvedToday: 0,
+    solvedDate: '',
     screen: 'home',
     currentProblem: null,
     rewardItem: null,
@@ -67,8 +77,17 @@ export function useGameState() {
       coins: gameState.coins,
       items: gameState.items,
       problemsSolved: gameState.problemsSolved,
+      solvedToday: gameState.solvedToday,
+      solvedDate: gameState.solvedDate,
     })
-  }, [hydrated, gameState.coins, gameState.items, gameState.problemsSolved])
+  }, [
+    hydrated,
+    gameState.coins,
+    gameState.items,
+    gameState.problemsSolved,
+    gameState.solvedToday,
+    gameState.solvedDate,
+  ])
 
   const handleOpenDifficulty = useCallback(() => {
     setGameState(prev => ({ ...prev, screen: 'difficulty' }))
@@ -111,10 +130,13 @@ export function useGameState() {
 
   // コインは、挑戦した問題の難易度から決める。筆算画面以外での呼び出し（連打など）は無視する
   const handleComplete = useCallback(() => {
+    // 「きょう」は、解き終わったときの日付で決める（アプリを開いたまま日をまたいでも合うように）
+    const today = toDateKey(new Date())
     setGameState(prev => {
       if (prev.screen !== 'division' || !prev.currentProblem) return prev
       const coinsEarned = DIFFICULTIES[prev.currentProblem.difficulty].coins
       const solved = prev.problemsSolved + 1
+      const solvedToday = nextDailyCount(prev.solvedToday, prev.solvedDate, today)
       const newItems = [...prev.items]
       let rewardItem: string | null = null
       if (Math.random() < 0.3) {
@@ -124,12 +146,15 @@ export function useGameState() {
           newItems.push(rewardItem)
         }
       }
-      const isMilestone = solved % MILESTONE === 0
+      // 節目は、きょうの数で決める（節目の画面に出る「きょうのお手伝い」と合わせる）
+      const isMilestone = solvedToday % MILESTONE === 0
       return {
         ...prev,
         coins: prev.coins + coinsEarned,
         items: newItems,
         problemsSolved: solved,
+        solvedToday,
+        solvedDate: today,
         // アイテムをもらったときは、先にお祝い画面を見せる（節目画面はそのあと）
         rewardItem,
         milestoneAfterReward: rewardItem !== null && isMilestone,

@@ -92,7 +92,7 @@ export default function Home() {
     case 'milestone':
       return (
         <MilestoneScreen
-          count={gameState.problemsSolved}
+          count={gameState.solvedToday}
           onContinue={handleMilestoneDone}
           onFinish={handleMilestoneDone}
         />

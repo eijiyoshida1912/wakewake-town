@@ -18,12 +18,16 @@ function playRound(result: HookResult, difficulty: Difficulty) {
 
 beforeEach(() => {
   localStorage.clear()
+  // 「きょう」を固定する（日付が変わるテストは、setSystemTime で進める）
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date(2026, 8, 20, 10, 0))
   // 0.99 なら、問題は各難易度の末尾が選ばれ、アイテムは（30%未満ではないので）もらえない
   vi.spyOn(Math, 'random').mockReturnValue(0.99)
 })
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.useRealTimers()
 })
 
 describe('useGameState: 画面遷移', () => {
@@ -219,6 +223,135 @@ describe('useGameState: 筆算を解き終わったら、前の画面には戻�
   })
 })
 
+describe('useGameState: きょうのお手伝い（日ごとの数）', () => {
+  const STORAGE_KEY = 'wakewake-town-save'
+  const day = (dayOfMonth: number, hour = 10, minute = 0) =>
+    vi.setSystemTime(new Date(2026, 8, dayOfMonth, hour, minute))
+  const saved = () => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
+
+  it('最初は、きょうの数も通算も 0', () => {
+    const { result } = renderHook(() => useGameState())
+    expect(result.current.gameState.solvedToday).toBe(0)
+    expect(result.current.gameState.problemsSolved).toBe(0)
+  })
+
+  it('1つ解くと、きょうの数も通算も 1 になる。3つ解くと、どちらも 3', () => {
+    const { result } = renderHook(() => useGameState())
+    playRound(result, 'easy')
+    expect(result.current.gameState).toMatchObject({ solvedToday: 1, problemsSolved: 1 })
+    playRound(result, 'easy')
+    playRound(result, 'easy')
+    expect(result.current.gameState).toMatchObject({ solvedToday: 3, problemsSolved: 3 })
+  })
+
+  it('同じ日に5つ解くと節目画面になり、きょうの数は 5', () => {
+    const { result } = renderHook(() => useGameState())
+    for (let i = 1; i <= 4; i++) playRound(result, 'easy')
+    expect(result.current.gameState.screen).toBe('home')
+    playRound(result, 'easy')
+    expect(result.current.gameState.screen).toBe('milestone')
+    expect(result.current.gameState.solvedToday).toBe(5)
+  })
+
+  it('日付が変わると、きょうの数は 1 から数え直す。通算は続く', () => {
+    const { result } = renderHook(() => useGameState())
+    playRound(result, 'easy')
+    playRound(result, 'easy')
+    expect(result.current.gameState.solvedToday).toBe(2)
+
+    day(21, 9)
+    playRound(result, 'easy')
+    expect(result.current.gameState).toMatchObject({ solvedToday: 1, problemsSolved: 3 })
+  })
+
+  it('夜の11時59分と、次の日の0時0分で、数え直しになる（アプリを開いたままでも）', () => {
+    const { result } = renderHook(() => useGameState())
+    day(20, 23, 59)
+    playRound(result, 'easy')
+    playRound(result, 'easy')
+    expect(result.current.gameState.solvedToday).toBe(2)
+
+    day(21, 0, 0)
+    playRound(result, 'easy')
+    expect(result.current.gameState.solvedToday).toBe(1)
+  })
+
+  it('通算が5の倍数でも、その日の5つ目でなければ節目にならない（前の日 3 + 今日 2 = 通算 5）', () => {
+    const { result } = renderHook(() => useGameState())
+    for (let i = 1; i <= 3; i++) playRound(result, 'easy')
+    day(21)
+    playRound(result, 'easy')
+    playRound(result, 'easy')
+    expect(result.current.gameState).toMatchObject({ problemsSolved: 5, solvedToday: 2, screen: 'home' })
+  })
+
+  it('前の日に 4 つ解いていても、次の日の1つ目は節目にならない。その日の5つ目で節目になる', () => {
+    const { result } = renderHook(() => useGameState())
+    for (let i = 1; i <= 4; i++) playRound(result, 'easy')
+    day(21)
+    playRound(result, 'easy')
+    expect(result.current.gameState).toMatchObject({ solvedToday: 1, screen: 'home' })
+    for (let i = 2; i <= 4; i++) playRound(result, 'easy')
+    expect(result.current.gameState.screen).toBe('home')
+    playRound(result, 'easy')
+    expect(result.current.gameState).toMatchObject({ solvedToday: 5, problemsSolved: 9, screen: 'milestone' })
+  })
+
+  it('きょうの数と日付は保存され、同じ日にアプリを開き直しても続きから数える', () => {
+    const first = renderHook(() => useGameState())
+    playRound(first.result, 'easy')
+    playRound(first.result, 'easy')
+    playRound(first.result, 'easy')
+    expect(saved()).toMatchObject({ solvedToday: 3, solvedDate: '2026-09-20' })
+    first.unmount()
+
+    day(20, 18)
+    const second = renderHook(() => useGameState())
+    expect(second.result.current.gameState.solvedToday).toBe(3)
+    playRound(second.result, 'easy')
+    playRound(second.result, 'easy')
+    expect(second.result.current.gameState).toMatchObject({ solvedToday: 5, screen: 'milestone' })
+  })
+
+  it('次の日にアプリを開き直したら、最初の1つは 1 と数える（前の日の分は引き継がない）', () => {
+    const first = renderHook(() => useGameState())
+    for (let i = 1; i <= 3; i++) playRound(first.result, 'easy')
+    first.unmount()
+
+    day(21, 8)
+    const second = renderHook(() => useGameState())
+    expect(second.result.current.gameState.problemsSolved).toBe(3)
+    playRound(second.result, 'easy')
+    expect(second.result.current.gameState).toMatchObject({ solvedToday: 1, problemsSolved: 4 })
+    expect(saved()).toMatchObject({ solvedToday: 1, solvedDate: '2026-09-21', problemsSolved: 4 })
+  })
+
+  it('今までの保存データ（通算だけ・通算 4）でも動く。1つ解いても、通算 5 で節目にはならない', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ coins: 50, items: ['いす'], problemsSolved: 4 }))
+    const { result } = renderHook(() => useGameState())
+    expect(result.current.gameState).toMatchObject({ coins: 50, problemsSolved: 4, solvedToday: 0 })
+    playRound(result, 'easy')
+    expect(result.current.gameState).toMatchObject({ problemsSolved: 5, solvedToday: 1, screen: 'home' })
+  })
+
+  it('保存データのきょうの数・日付が壊れていても（文字列・なし）、0 から始まる', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ coins: 0, items: [], problemsSolved: 2, solvedToday: 'たくさん', solvedDate: 20260920 }),
+    )
+    const { result } = renderHook(() => useGameState())
+    expect(result.current.gameState).toMatchObject({ problemsSolved: 2, solvedToday: 0, solvedDate: '' })
+    playRound(result, 'easy')
+    expect(result.current.gameState).toMatchObject({ solvedToday: 1, problemsSolved: 3 })
+  })
+
+  it('筆算画面以外で完了を呼んでも、きょうの数は増えない', () => {
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleComplete())
+    expect(result.current.gameState).toMatchObject({ solvedToday: 0, problemsSolved: 0 })
+  })
+})
+
 describe('useGameState: 難易度ごとのコイン', () => {
   it.each([
     ['easy', 10],
@@ -292,7 +425,7 @@ describe('useGameState: アイテム', () => {
 })
 
 describe('useGameState: localStorage への保存と復元', () => {
-  it('クリアするとコイン・アイテム・解いた数が保存される', () => {
+  it('クリアするとコイン・アイテム・解いた数（通算・きょう）が保存される', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0)
     const { result } = renderHook(() => useGameState())
     playRound(result, 'normal')
@@ -300,6 +433,8 @@ describe('useGameState: localStorage への保存と復元', () => {
       coins: 15,
       items: ['いす'],
       problemsSolved: 1,
+      solvedToday: 1,
+      solvedDate: '2026-09-20',
     })
   })
 
@@ -548,6 +683,8 @@ describe('useGameState: お店', () => {
       coins: 70,
       items: ['ぼうし'],
       problemsSolved: 0,
+      solvedToday: 0,
+      solvedDate: '',
     })
     first.unmount()
     const second = renderHook(() => useGameState())
