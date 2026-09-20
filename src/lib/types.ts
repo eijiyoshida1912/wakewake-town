@@ -36,6 +36,8 @@ export interface GameState {
   milestoneAfterReward: boolean
   /** お店で、いま買ったアイテム（「○○をかったよ！」を出す） */
   purchasedItem: string | null
+  /** 筆算（division）を解き終わったか。解き終わったら、依頼画面には戻れない */
+  divisionSolved: boolean
 }
 
 export interface WorkingRow {

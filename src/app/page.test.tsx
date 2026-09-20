@@ -115,6 +115,168 @@ describe('ひとつ前の画面に戻る（ページ全体）', () => {
   })
 })
 
+describe('ブラウザの「戻る」（ページ全体）', () => {
+  /** ブラウザの「戻る」を押した（戻った先の履歴には、こちらの目印はない） */
+  const pressBrowserBack = () =>
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate', { state: { __NA: true } }))
+    })
+  const start = (label: RegExp) => {
+    fireEvent.click(screen.getByRole('button', { name: /おねがいをきく/ }))
+    fireEvent.click(screen.getByRole('button', { name: label }))
+  }
+  // 96 ÷ 3 を、最後まで解く（乱数 0 のとき、最初のかんたんの問題）
+  const solveEasy = () => {
+    const submit = (answer: string) => {
+      for (const ch of answer) fireEvent.click(screen.getByRole('button', { name: ch }))
+      fireEvent.click(screen.getByRole('button', { name: 'こたえる！' }))
+      act(() => { vi.advanceTimersByTime(800) })
+    }
+    submit('3')
+    submit('9')
+    submit('0')
+    fireEvent.click(screen.getByRole('button', { name: /6 をおろす/ }))
+    act(() => { vi.advanceTimersByTime(700) })
+    submit('2')
+    submit('6')
+    submit('0')
+  }
+  let pushState: ReturnType<typeof vi.spyOn>
+  let back: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    pushState = vi.spyOn(window.history, 'pushState')
+    // jsdom の history.back() は、あとから popstate を起こすので、呼ばれたことだけ確認する
+    back = vi.spyOn(window.history, 'back').mockImplementation(() => {})
+  })
+
+  it('ホームのままなら、履歴は積まない。ホームで戻るを押しても、何も起きない', () => {
+    render(<Home />)
+    expect(pushState).not.toHaveBeenCalled()
+    pressBrowserBack()
+    expect(screen.getByRole('button', { name: /おねがいをきく/ })).toBeDefined()
+    expect(pushState).not.toHaveBeenCalled()
+  })
+
+  it('「おねがいをきく」で履歴が1つ積まれ、依頼画面・筆算画面に進んでも増えない', () => {
+    render(<Home />)
+    fireEvent.click(screen.getByRole('button', { name: /おねがいをきく/ }))
+    expect(pushState).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: /かんたん/ }))
+    fireEvent.click(screen.getByRole('button', { name: /お手伝いする/ }))
+    expect(screen.getByText(/を計算しよう/)).toBeDefined()
+    expect(pushState).toHaveBeenCalledTimes(1)
+  })
+
+  it('筆算画面 → 依頼画面 → 難易度選択 → ホーム と、ブラウザの戻るで1つずつ戻れる', () => {
+    render(<Home />)
+    start(/かんたん/)
+    fireEvent.click(screen.getByRole('button', { name: /お手伝いする/ }))
+    expect(screen.getByText(/を計算しよう/)).toBeDefined()
+
+    pressBrowserBack()
+    expect(screen.getByRole('button', { name: /お手伝いする/ })).toBeDefined()
+    expect(screen.queryByText(/を計算しよう/)).toBeNull()
+
+    pressBrowserBack()
+    expect(screen.getByText('どのおねがいにする？')).toBeDefined()
+
+    pressBrowserBack()
+    expect(screen.getByRole('button', { name: /おねがいをきく/ })).toBeDefined()
+
+    // ホームまで戻ったら、それ以上は履歴を積み直さない（次に戻るとアプリを離れられる）
+    expect(pushState).toHaveBeenCalledTimes(3)
+    expect(back).not.toHaveBeenCalled()
+  })
+
+  it('画面の「もどる」ボタンでホームに戻ると、積んでいた履歴を1つ戻す（ブラウザの戻るが空振りしない）', () => {
+    render(<Home />)
+    start(/かんたん/)
+    fireEvent.click(screen.getByRole('button', { name: /もどる/ }))
+    expect(back).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: /もどる/ }))
+    expect(screen.getByRole('button', { name: /おねがいをきく/ })).toBeDefined()
+    expect(back).toHaveBeenCalledTimes(1)
+    // 戻した履歴で起きる popstate では、画面は動かない
+    pressBrowserBack()
+    expect(screen.getByRole('button', { name: /おねがいをきく/ })).toBeDefined()
+  })
+
+  it('おみせでブラウザの戻るを押すと、ホームに戻る', () => {
+    render(<Home />)
+    fireEvent.click(screen.getByRole('button', { name: /おみせ/ }))
+    expect(screen.getByRole('heading', { name: /おみせ/ })).toBeDefined()
+    expect(pushState).toHaveBeenCalledTimes(1)
+    pressBrowserBack()
+    expect(screen.getByRole('button', { name: /おねがいをきく/ })).toBeDefined()
+  })
+
+  it('筆算を解き終わった完成画面では、ブラウザの戻るを押しても、その場にとどまる', () => {
+    vi.useFakeTimers()
+    render(<Home />)
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    start(/かんたん/)
+    fireEvent.click(screen.getByRole('button', { name: /お手伝いする/ }))
+    solveEasy()
+    expect(screen.getByText(/できた！/)).toBeDefined()
+
+    pushState.mockClear()
+    pressBrowserBack()
+    pressBrowserBack()
+    expect(screen.getByText(/できた！/)).toBeDefined()
+    expect(screen.getByRole('button', { name: /つぎのおねがいへ/ })).toBeDefined()
+    // 押されるたびに履歴を積み直して、次の戻るも受け止める
+    expect(pushState).toHaveBeenCalledTimes(2)
+    // コインは、まだ入っていない
+    expect(JSON.parse(localStorage.getItem('wakewake-town-save') ?? 'null')).toMatchObject({ coins: 0, problemsSolved: 0 })
+
+    fireEvent.click(screen.getByRole('button', { name: /つぎのおねがいへ/ }))
+    expect(screen.getByText('いすをもらったよ！')).toBeDefined()
+  })
+
+  it('お祝い画面・節目画面でも、ブラウザの戻るを押してもその場にとどまる。ボタンで進めばホームに戻る', () => {
+    vi.useFakeTimers()
+    localStorage.setItem('wakewake-town-save', JSON.stringify({ coins: 0, items: [], problemsSolved: 4 }))
+    render(<Home />)
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    start(/かんたん/)
+    fireEvent.click(screen.getByRole('button', { name: /お手伝いする/ }))
+    solveEasy()
+    fireEvent.click(screen.getByRole('button', { name: /つぎのおねがいへ/ }))
+    expect(screen.getByText('いすをもらったよ！')).toBeDefined()
+
+    pressBrowserBack()
+    expect(screen.getByText('いすをもらったよ！')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: /やったー/ }))
+    expect(screen.getByRole('button', { name: /もっと遊ぶ/ })).toBeDefined()
+    pressBrowserBack()
+    expect(screen.getByRole('button', { name: /もっと遊ぶ/ })).toBeDefined()
+
+    expect(back).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: /おわる/ }))
+    expect(screen.getByRole('button', { name: /おねがいをきく/ })).toBeDefined()
+    expect(back).toHaveBeenCalledTimes(1)
+  })
+
+  it('解き終わって完了したあとは、次の筆算でまたブラウザの戻るで戻れる', () => {
+    vi.useFakeTimers()
+    render(<Home />)
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    start(/かんたん/)
+    fireEvent.click(screen.getByRole('button', { name: /お手伝いする/ }))
+    solveEasy()
+    fireEvent.click(screen.getByRole('button', { name: /つぎのおねがいへ/ }))
+    fireEvent.click(screen.getByRole('button', { name: /やったー/ }))
+    expect(screen.getByRole('button', { name: /おねがいをきく/ })).toBeDefined()
+
+    start(/かんたん/)
+    fireEvent.click(screen.getByRole('button', { name: /お手伝いする/ }))
+    pressBrowserBack()
+    expect(screen.getByRole('button', { name: /お手伝いする/ })).toBeDefined()
+  })
+})
+
 describe('アイテムをもらったときのお祝い（ページ全体）', () => {
   const advance = (ms: number) => act(() => { vi.advanceTimersByTime(ms) })
   const submit = (answer: string) => {

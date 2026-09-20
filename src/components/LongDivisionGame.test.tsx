@@ -38,7 +38,7 @@ function drop(digit: number) {
 
 describe('LongDivisionGame: ヘッダー', () => {
   it('問題の式と、難易度の名前が表示される', () => {
-    render(<LongDivisionGame problem={normalProblem} onComplete={() => {}} onBack={() => {}} />)
+    render(<LongDivisionGame problem={normalProblem} onComplete={() => {}} onBack={() => {}} onSolved={() => {}} />)
     expect(screen.getByText(/75 ÷ 4 を計算しよう/)).toBeDefined()
     expect(screen.getByText('まあまあ')).toBeDefined()
   })
@@ -52,7 +52,7 @@ describe('LongDivisionGame: ひとつ前に戻る', () => {
   ])('%s: 「もどる」を押すと onBack が1回呼ばれ、onComplete は呼ばれない', (_label, problem) => {
     const onBack = vi.fn()
     const onComplete = vi.fn()
-    render(<LongDivisionGame problem={problem} onComplete={onComplete} onBack={onBack} />)
+    render(<LongDivisionGame problem={problem} onComplete={onComplete} onBack={onBack} onSolved={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: /もどる/ }))
     expect(onBack).toHaveBeenCalledTimes(1)
     expect(onComplete).not.toHaveBeenCalled()
@@ -60,7 +60,7 @@ describe('LongDivisionGame: ひとつ前に戻る', () => {
 
   it('途中まで解いたあとでも「もどる」を押せる', () => {
     const onBack = vi.fn()
-    render(<LongDivisionGame problem={easyProblem} onComplete={() => {}} onBack={onBack} />)
+    render(<LongDivisionGame problem={easyProblem} onComplete={() => {}} onBack={onBack} onSolved={() => {}} />)
     submit('3')
     submit('9')
     fireEvent.click(screen.getByRole('button', { name: /もどる/ }))
@@ -68,7 +68,7 @@ describe('LongDivisionGame: ひとつ前に戻る', () => {
   })
 
   it('完成画面では「もどる」は出ない（コインをもらう前に戻って、やり直せてしまわないように）', () => {
-    render(<LongDivisionGame problem={easyProblem} onComplete={() => {}} onBack={() => {}} />)
+    render(<LongDivisionGame problem={easyProblem} onComplete={() => {}} onBack={() => {}} onSolved={() => {}} />)
     expect(screen.getByRole('button', { name: /もどる/ })).toBeDefined()
     submit('3')
     submit('9')
@@ -83,16 +83,50 @@ describe('LongDivisionGame: ひとつ前に戻る', () => {
   })
 })
 
+describe('LongDivisionGame: 解き終わりを親に伝える', () => {
+  it('補助あり: 途中では呼ばれず、最後まで解いたときに1回だけ呼ばれる', () => {
+    const onSolved = vi.fn()
+    render(<LongDivisionGame problem={easyProblem} onComplete={() => {}} onBack={() => {}} onSolved={onSolved} />)
+    submit('3')
+    submit('9')
+    submit('0')
+    drop(6)
+    submit('2')
+    submit('6')
+    expect(onSolved).not.toHaveBeenCalled()
+    submit('0')
+    expect(onSolved).toHaveBeenCalledTimes(1)
+  })
+
+  it('補助なし（チャレンジ）: すべて埋めるまでは呼ばれず、埋めたあとに1回だけ呼ばれる', () => {
+    const onSolved = vi.fn()
+    render(<LongDivisionGame problem={challengeProblem} onComplete={() => {}} onBack={() => {}} onSolved={onSolved} />)
+    const cells = getChallengeCells(challengeProblem).filter(cell => cell.expected !== null)
+    for (const cell of cells.slice(0, -1)) {
+      fireEvent.click(screen.getByLabelText(getCellLabel(cell)))
+      fireEvent.click(within(screen.getByLabelText('すうじ')).getByText(String(cell.expected)))
+    }
+    advance(1000)
+    expect(onSolved).not.toHaveBeenCalled()
+
+    const last = cells[cells.length - 1]
+    fireEvent.click(screen.getByLabelText(getCellLabel(last)))
+    fireEvent.click(within(screen.getByLabelText('すうじ')).getByText(String(last.expected)))
+    advance(1000)
+    expect(onSolved).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('LongDivisionGame: 補助あり（かんたん・まあまあ）', () => {
   it('最初のステップの質問文が表示され、数字ボタンと「こたえる！」がある', () => {
-    render(<LongDivisionGame problem={normalProblem} onComplete={() => {}} onBack={() => {}} />)
+    render(<LongDivisionGame problem={normalProblem} onComplete={() => {}} onBack={() => {}} onSolved={() => {}} />)
     expect(screen.getByText('7 の中に 4 はいくつ入るかな？')).toBeDefined()
     expect(screen.getByRole('button', { name: 'こたえる！' })).toBeDefined()
     expect(screen.queryByRole('group', { name: 'ひっ算' })).toBeNull()
   })
 
   it('まちがえると「おしい」、2回まちがえるとヒントが出る。正解するとヒントは消える', () => {
-    render(<LongDivisionGame problem={normalProblem} onComplete={() => {}} onBack={() => {}} />)
+    render(<LongDivisionGame problem={normalProblem} onComplete={() => {}} onBack={() => {}} onSolved={() => {}} />)
 
     submit('9')
     expect(screen.getByText(/おしい/)).toBeDefined()
@@ -108,7 +142,7 @@ describe('LongDivisionGame: 補助あり（かんたん・まあまあ）', () =
   })
 
   it('まあまあ（75 ÷ 4）を最後まで解くと、「18 あまり 3」と ＋15コイン が表示される', () => {
-    render(<LongDivisionGame problem={normalProblem} onComplete={() => {}} onBack={() => {}} />)
+    render(<LongDivisionGame problem={normalProblem} onComplete={() => {}} onBack={() => {}} onSolved={() => {}} />)
     submit('1')
     submit('4')
     submit('3')
@@ -124,7 +158,7 @@ describe('LongDivisionGame: 補助あり（かんたん・まあまあ）', () =
   })
 
   it('完成画面に、わけわけのアニメーションが出る（75 ÷ 4 なら4人のなかま）', () => {
-    render(<LongDivisionGame problem={normalProblem} onComplete={() => {}} onBack={() => {}} />)
+    render(<LongDivisionGame problem={normalProblem} onComplete={() => {}} onBack={() => {}} onSolved={() => {}} />)
     expect(screen.queryByRole('region', { name: 'わけわけ' })).toBeNull()
     submit('1')
     submit('4')
@@ -141,7 +175,7 @@ describe('LongDivisionGame: 補助あり（かんたん・まあまあ）', () =
   })
 
   it('かんたん（96 ÷ 3）を最後まで解くと、あまりなしで「32」と ＋10コイン が表示される', () => {
-    render(<LongDivisionGame problem={easyProblem} onComplete={() => {}} onBack={() => {}} />)
+    render(<LongDivisionGame problem={easyProblem} onComplete={() => {}} onBack={() => {}} onSolved={() => {}} />)
     submit('3')
     submit('9')
     submit('0')
@@ -156,7 +190,7 @@ describe('LongDivisionGame: 補助あり（かんたん・まあまあ）', () =
   })
 
   it('完成画面では「つぎのおねがいへ」が、完成した筆算の盤面より上にある（画面の下に隠れない）', () => {
-    render(<LongDivisionGame problem={easyProblem} onComplete={() => {}} onBack={() => {}} />)
+    render(<LongDivisionGame problem={easyProblem} onComplete={() => {}} onBack={() => {}} onSolved={() => {}} />)
     submit('3')
     submit('9')
     submit('0')
@@ -175,7 +209,7 @@ describe('LongDivisionGame: 補助あり（かんたん・まあまあ）', () =
 
   it('完成後に「つぎのおねがいへ」を押すと、onComplete が1回呼ばれる', () => {
     const onComplete = vi.fn()
-    render(<LongDivisionGame problem={easyProblem} onComplete={onComplete} onBack={() => {}} />)
+    render(<LongDivisionGame problem={easyProblem} onComplete={onComplete} onBack={() => {}} onSolved={() => {}} />)
     submit('3')
     submit('9')
     submit('0')
@@ -192,7 +226,7 @@ describe('LongDivisionGame: 補助あり（かんたん・まあまあ）', () =
 
 describe('LongDivisionGame: 補助なし（チャレンジ）', () => {
   it('ひっ算の盤面に直接入力する形式で、質問文・ヒント・「こたえる！」は出ない', () => {
-    render(<LongDivisionGame problem={challengeProblem} onComplete={() => {}} onBack={() => {}} />)
+    render(<LongDivisionGame problem={challengeProblem} onComplete={() => {}} onBack={() => {}} onSolved={() => {}} />)
     expect(screen.getByRole('group', { name: 'ひっ算' })).toBeDefined()
     expect(screen.getByText('チャレンジ')).toBeDefined()
     expect(screen.queryByRole('button', { name: 'こたえる！' })).toBeNull()
@@ -201,7 +235,7 @@ describe('LongDivisionGame: 補助なし（チャレンジ）', () => {
 
   it('すべてのマスを正しく埋めると、「64 あまり 3」と ＋30コイン が表示される', () => {
     const onComplete = vi.fn()
-    render(<LongDivisionGame problem={challengeProblem} onComplete={onComplete} onBack={() => {}} />)
+    render(<LongDivisionGame problem={challengeProblem} onComplete={onComplete} onBack={() => {}} onSolved={() => {}} />)
 
     for (const cell of getChallengeCells(challengeProblem)) {
       if (cell.expected === null) continue

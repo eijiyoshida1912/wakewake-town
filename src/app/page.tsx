@@ -1,6 +1,7 @@
 'use client'
 
 import { useGameState } from '@/lib/useGameState'
+import { useBrowserBack } from '@/lib/useBrowserBack'
 import TownHome from '@/components/TownHome'
 import DifficultySelect from '@/components/DifficultySelect'
 import RequestScene from '@/components/RequestScene'
@@ -17,6 +18,7 @@ export default function Home() {
     handleCancelDifficulty,
     handleSelectDifficulty,
     handleAccept,
+    handleSolved,
     handleBackToDifficulty,
     handleBackToRequest,
     handleComplete,
@@ -27,6 +29,24 @@ export default function Home() {
     handleDismissPurchase,
     handleMilestoneDone,
   } = useGameState()
+
+  // ブラウザの「戻る」は、画面の「もどる」と同じ動きにする。
+  // 完成画面・お祝い画面・節目画面は、コインをもらったあとなので戻れない（null）
+  const backAction = (() => {
+    switch (gameState.screen) {
+      case 'difficulty':
+        return handleCancelDifficulty
+      case 'request':
+        return handleBackToDifficulty
+      case 'division':
+        return gameState.divisionSolved ? null : handleBackToRequest
+      case 'shop':
+        return handleCloseShop
+      default:
+        return null
+    }
+  })()
+  useBrowserBack(gameState.screen !== 'home', backAction)
 
   // localStorageの読み込みが終わるまでは何も表示しない（ちらつき防止）
   if (!hydrated) return null
@@ -41,7 +61,14 @@ export default function Home() {
       return <RequestScene problem={gameState.currentProblem} onAccept={handleAccept} onBack={handleBackToDifficulty} />
     case 'division':
       if (!gameState.currentProblem) return null
-      return <LongDivisionGame problem={gameState.currentProblem} onComplete={handleComplete} onBack={handleBackToRequest} />
+      return (
+        <LongDivisionGame
+          problem={gameState.currentProblem}
+          onComplete={handleComplete}
+          onBack={handleBackToRequest}
+          onSolved={handleSolved}
+        />
+      )
     case 'reward':
       if (!gameState.rewardItem || !gameState.currentProblem) return null
       return (

@@ -14,12 +14,17 @@ interface LongDivisionGameProps {
   problem: Problem
   onComplete: () => void
   onBack: () => void
+  /** 筆算を解き終わった（完成画面になった）ことを伝える */
+  onSolved: () => void
 }
 
-export default function LongDivisionGame({ problem, onComplete, onBack }: LongDivisionGameProps) {
+export default function LongDivisionGame({ problem, onComplete, onBack, onSolved }: LongDivisionGameProps) {
   const config = DIFFICULTIES[problem.difficulty]
   const [solved, setSolved] = useState(false)
-  const handleSolved = useCallback(() => setSolved(true), [])
+  const handleSolved = useCallback(() => {
+    setSolved(true)
+    onSolved()
+  }, [onSolved])
 
   // 完成した盤面（最後のステップの状態）
   const steps = generateSteps(problem)

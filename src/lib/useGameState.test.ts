@@ -170,6 +170,55 @@ describe('useGameState: ひとつ前の画面に戻る', () => {
   })
 })
 
+describe('useGameState: 筆算を解き終わったら、前の画面には戻れない', () => {
+  const toDivision = (result: HookResult) => {
+    act(() => result.current.handleOpenDifficulty())
+    act(() => result.current.handleSelectDifficulty('normal'))
+    act(() => result.current.handleAccept())
+  }
+
+  it('筆算を始めたときは、まだ解き終わっていない', () => {
+    const { result } = renderHook(() => useGameState())
+    toDivision(result)
+    expect(result.current.gameState.divisionSolved).toBe(false)
+  })
+
+  it('解き終わると、筆算画面から依頼画面には戻れなくなる（コインをもらわずにやり直せてしまうため）', () => {
+    const { result } = renderHook(() => useGameState())
+    toDivision(result)
+    act(() => result.current.handleSolved())
+    expect(result.current.gameState.divisionSolved).toBe(true)
+
+    act(() => result.current.handleBackToRequest())
+    expect(result.current.gameState.screen).toBe('division')
+  })
+
+  it('解き終わったあとで完了すると、コインが入り、次の筆算はまた戻れる', () => {
+    const { result } = renderHook(() => useGameState())
+    toDivision(result)
+    act(() => result.current.handleSolved())
+    act(() => result.current.handleComplete())
+    expect(result.current.gameState.coins).toBe(15)
+    expect(result.current.gameState.divisionSolved).toBe(false)
+
+    toDivision(result)
+    expect(result.current.gameState.divisionSolved).toBe(false)
+    act(() => result.current.handleBackToRequest())
+    expect(result.current.gameState.screen).toBe('request')
+  })
+
+  it('筆算画面以外で解き終わりを伝えても、何も変わらない', () => {
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleSolved())
+    expect(result.current.gameState.divisionSolved).toBe(false)
+
+    act(() => result.current.handleOpenDifficulty())
+    act(() => result.current.handleSelectDifficulty('normal'))
+    act(() => result.current.handleSolved())
+    expect(result.current.gameState.divisionSolved).toBe(false)
+  })
+})
+
 describe('useGameState: 難易度ごとのコイン', () => {
   it.each([
     ['easy', 10],

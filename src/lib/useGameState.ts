@@ -49,6 +49,7 @@ export function useGameState() {
     rewardItem: null,
     milestoneAfterReward: false,
     purchasedItem: null,
+    divisionSolved: false,
   })
   const [hydrated, setHydrated] = useState(false)
 
@@ -83,7 +84,15 @@ export function useGameState() {
   }, [gameState.currentProblem])
 
   const handleAccept = useCallback(() => {
-    setGameState(prev => ({ ...prev, screen: 'division' }))
+    setGameState(prev => ({ ...prev, screen: 'division', divisionSolved: false }))
+  }, [])
+
+  // 筆算を解き終わったことを覚える。解き終わったあとに依頼画面へ戻ると、
+  // コインをもらわずにやり直せてしまうので、戻れなくする。筆算画面以外での呼び出しは無視する
+  const handleSolved = useCallback(() => {
+    setGameState(prev =>
+      prev.screen === 'division' && !prev.divisionSolved ? { ...prev, divisionSolved: true } : prev,
+    )
   }, [])
 
   // 依頼画面から、難易度選択に戻る。依頼画面以外での呼び出し（連打など）は無視する。
@@ -92,9 +101,12 @@ export function useGameState() {
     setGameState(prev => (prev.screen === 'request' ? { ...prev, screen: 'difficulty' } : prev))
   }, [])
 
-  // 筆算画面から、依頼画面に戻る（解きかけの筆算は捨てる）。筆算画面以外での呼び出しは無視する
+  // 筆算画面から、依頼画面に戻る（解きかけの筆算は捨てる）。
+  // 筆算画面以外での呼び出しと、解き終わったあとの呼び出しは無視する
   const handleBackToRequest = useCallback(() => {
-    setGameState(prev => (prev.screen === 'division' ? { ...prev, screen: 'request' } : prev))
+    setGameState(prev =>
+      prev.screen === 'division' && !prev.divisionSolved ? { ...prev, screen: 'request' } : prev,
+    )
   }, [])
 
   // コインは、挑戦した問題の難易度から決める。筆算画面以外での呼び出し（連打など）は無視する
@@ -121,6 +133,7 @@ export function useGameState() {
         // アイテムをもらったときは、先にお祝い画面を見せる（節目画面はそのあと）
         rewardItem,
         milestoneAfterReward: rewardItem !== null && isMilestone,
+        divisionSolved: false,
         screen: rewardItem !== null ? 'reward' : isMilestone ? 'milestone' : 'home',
       }
     })
@@ -174,6 +187,7 @@ export function useGameState() {
     handleCancelDifficulty,
     handleSelectDifficulty,
     handleAccept,
+    handleSolved,
     handleBackToDifficulty,
     handleBackToRequest,
     handleComplete,
