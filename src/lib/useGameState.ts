@@ -86,6 +86,17 @@ export function useGameState() {
     setGameState(prev => ({ ...prev, screen: 'division' }))
   }, [])
 
+  // 依頼画面から、難易度選択に戻る。依頼画面以外での呼び出し（連打など）は無視する。
+  // currentProblem は残すので、選び直したときに同じ問題が続けて出ることはない
+  const handleBackToDifficulty = useCallback(() => {
+    setGameState(prev => (prev.screen === 'request' ? { ...prev, screen: 'difficulty' } : prev))
+  }, [])
+
+  // 筆算画面から、依頼画面に戻る（解きかけの筆算は捨てる）。筆算画面以外での呼び出しは無視する
+  const handleBackToRequest = useCallback(() => {
+    setGameState(prev => (prev.screen === 'division' ? { ...prev, screen: 'request' } : prev))
+  }, [])
+
   // コインは、挑戦した問題の難易度から決める。筆算画面以外での呼び出し（連打など）は無視する
   const handleComplete = useCallback(() => {
     setGameState(prev => {
@@ -163,6 +174,8 @@ export function useGameState() {
     handleCancelDifficulty,
     handleSelectDifficulty,
     handleAccept,
+    handleBackToDifficulty,
+    handleBackToRequest,
     handleComplete,
     handleRewardDone,
     handleOpenShop,

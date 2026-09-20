@@ -51,6 +51,70 @@ describe('ページ全体の画面遷移', () => {
   })
 })
 
+describe('ひとつ前の画面に戻る（ページ全体）', () => {
+  const toRequest = (label: RegExp) => {
+    fireEvent.click(screen.getByRole('button', { name: /おねがいをきく/ }))
+    fireEvent.click(screen.getByRole('button', { name: label }))
+  }
+
+  it('依頼画面の「もどる」で、難易度選択画面に戻る。そこからホームにも戻れる', () => {
+    render(<Home />)
+    toRequest(/かんたん/)
+    expect(screen.getByRole('button', { name: /お手伝いする/ })).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: /もどる/ }))
+    expect(screen.getByText('どのおねがいにする？')).toBeDefined()
+    expect(screen.queryByRole('button', { name: /お手伝いする/ })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /もどる/ }))
+    expect(screen.getByRole('button', { name: /おねがいをきく/ })).toBeDefined()
+  })
+
+  it('依頼画面から戻って、別の難易度（チャレンジ）を選び直せる', () => {
+    render(<Home />)
+    toRequest(/かんたん/)
+    fireEvent.click(screen.getByRole('button', { name: /もどる/ }))
+    fireEvent.click(screen.getByRole('button', { name: /チャレンジ/ }))
+    fireEvent.click(screen.getByRole('button', { name: /お手伝いする/ }))
+    expect(screen.getByText(/\d{3} ÷ \d を計算しよう/)).toBeDefined()
+    expect(screen.getByText('チャレンジ')).toBeDefined()
+  })
+
+  it('筆算画面の「もどる」で、同じ問題の依頼画面に戻る。もう一度「お手伝いする！」で筆算画面に進める', () => {
+    render(<Home />)
+    toRequest(/まあまあ/)
+    const equation = screen.getByText(/^\d+ ÷ \d+$/).textContent
+    fireEvent.click(screen.getByRole('button', { name: /お手伝いする/ }))
+    expect(screen.getByText(`${equation} を計算しよう！`)).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: /もどる/ }))
+    expect(screen.getByText(/^\d+ ÷ \d+$/).textContent).toBe(equation)
+    expect(screen.queryByText(/を計算しよう/)).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /お手伝いする/ }))
+    expect(screen.getByText(`${equation} を計算しよう！`)).toBeDefined()
+  })
+
+  it('筆算画面で途中まで解いて戻ると、コインは増えず、やり直しは最初のステップから始まる', () => {
+    vi.useFakeTimers()
+    render(<Home />)
+    // 乱数 0: 最初のかんたん（96 ÷ 3）が出る
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    toRequest(/かんたん/)
+    fireEvent.click(screen.getByRole('button', { name: /お手伝いする/ }))
+    expect(screen.getByText('9 の中に 3 はいくつ入るかな？')).toBeDefined()
+    for (const ch of '3') fireEvent.click(screen.getByRole('button', { name: ch }))
+    fireEvent.click(screen.getByRole('button', { name: 'こたえる！' }))
+    act(() => { vi.advanceTimersByTime(800) })
+    expect(screen.queryByText('9 の中に 3 はいくつ入るかな？')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /もどる/ }))
+    fireEvent.click(screen.getByRole('button', { name: /お手伝いする/ }))
+    expect(screen.getByText('9 の中に 3 はいくつ入るかな？')).toBeDefined()
+    expect(JSON.parse(localStorage.getItem('wakewake-town-save') ?? 'null')).toMatchObject({ coins: 0, problemsSolved: 0 })
+  })
+})
+
 describe('アイテムをもらったときのお祝い（ページ全体）', () => {
   const advance = (ms: number) => act(() => { vi.advanceTimersByTime(ms) })
   const submit = (answer: string) => {

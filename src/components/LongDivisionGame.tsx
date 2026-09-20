@@ -13,9 +13,10 @@ import ShareAnimation from './ShareAnimation'
 interface LongDivisionGameProps {
   problem: Problem
   onComplete: () => void
+  onBack: () => void
 }
 
-export default function LongDivisionGame({ problem, onComplete }: LongDivisionGameProps) {
+export default function LongDivisionGame({ problem, onComplete, onBack }: LongDivisionGameProps) {
   const config = DIFFICULTIES[problem.difficulty]
   const [solved, setSolved] = useState(false)
   const handleSolved = useCallback(() => setSolved(true), [])
@@ -28,6 +29,15 @@ export default function LongDivisionGame({ problem, onComplete }: LongDivisionGa
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-amber-50 flex flex-col">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 py-3 flex items-center gap-3">
+        {/* 完成後に戻ると、コインをもらわずにやり直せてしまうので、完成画面では出さない */}
+        {!solved && (
+          <button
+            onClick={onBack}
+            className="rounded-xl bg-gray-200 px-3 py-2 text-sm font-bold text-gray-600 shadow transition-all hover:bg-gray-300 active:scale-95"
+          >
+            ← もどる
+          </button>
+        )}
         <span className="text-2xl">{RESIDENTS[problem.residentId].emoji}</span>
         <div className="flex-1">
           <p className="text-xs text-gray-500">{RESIDENTS[problem.residentId].name}のおねがい</p>

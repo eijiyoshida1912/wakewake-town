@@ -83,6 +83,93 @@ describe('useGameState: 画面遷移', () => {
   })
 })
 
+describe('useGameState: ひとつ前の画面に戻る', () => {
+  it('依頼画面から戻ると難易度選択画面になる。コインも解いた数も変わらない', () => {
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenDifficulty())
+    act(() => result.current.handleSelectDifficulty('easy'))
+    expect(result.current.gameState.screen).toBe('request')
+
+    act(() => result.current.handleBackToDifficulty())
+    expect(result.current.gameState.screen).toBe('difficulty')
+    expect(result.current.gameState.coins).toBe(0)
+    expect(result.current.gameState.problemsSolved).toBe(0)
+  })
+
+  it('依頼画面から戻って選び直すと、選んだ難易度の問題で依頼画面に進む（別の難易度も選べる）', () => {
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenDifficulty())
+    act(() => result.current.handleSelectDifficulty('easy'))
+    act(() => result.current.handleBackToDifficulty())
+    act(() => result.current.handleSelectDifficulty('challenge'))
+    expect(result.current.gameState.screen).toBe('request')
+    expect(result.current.gameState.currentProblem?.difficulty).toBe('challenge')
+  })
+
+  it('依頼画面から戻って同じ難易度を選び直しても、直前の問題とは違う問題が出る', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { result } = renderHook(() => useGameState())
+    const easy = getProblemsByDifficulty('easy')
+    act(() => result.current.handleOpenDifficulty())
+    act(() => result.current.handleSelectDifficulty('easy'))
+    expect(result.current.gameState.currentProblem?.id).toBe(easy[0].id)
+
+    act(() => result.current.handleBackToDifficulty())
+    act(() => result.current.handleSelectDifficulty('easy'))
+    expect(result.current.gameState.currentProblem?.id).toBe(easy[1].id)
+  })
+
+  it('筆算画面から戻ると、同じ問題の依頼画面になる。コインも解いた数も増えない', () => {
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenDifficulty())
+    act(() => result.current.handleSelectDifficulty('normal'))
+    const problem = result.current.gameState.currentProblem
+    act(() => result.current.handleAccept())
+    expect(result.current.gameState.screen).toBe('division')
+
+    act(() => result.current.handleBackToRequest())
+    expect(result.current.gameState.screen).toBe('request')
+    expect(result.current.gameState.currentProblem).toEqual(problem)
+    expect(result.current.gameState.coins).toBe(0)
+    expect(result.current.gameState.problemsSolved).toBe(0)
+  })
+
+  it('筆算画面から戻ったあと、もう一度受けて最後まで進めると、コインは1回分だけ入る', () => {
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleOpenDifficulty())
+    act(() => result.current.handleSelectDifficulty('normal'))
+    act(() => result.current.handleAccept())
+    act(() => result.current.handleBackToRequest())
+    act(() => result.current.handleAccept())
+    act(() => result.current.handleComplete())
+    expect(result.current.gameState.coins).toBe(15)
+    expect(result.current.gameState.problemsSolved).toBe(1)
+  })
+
+  it('依頼画面から戻る操作は、依頼画面以外（ホーム・筆算画面）では何もしない', () => {
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleBackToDifficulty())
+    expect(result.current.gameState.screen).toBe('home')
+
+    act(() => result.current.handleOpenDifficulty())
+    act(() => result.current.handleSelectDifficulty('easy'))
+    act(() => result.current.handleAccept())
+    act(() => result.current.handleBackToDifficulty())
+    expect(result.current.gameState.screen).toBe('division')
+  })
+
+  it('筆算画面から戻る操作は、筆算画面以外（ホーム・依頼画面）では何もしない', () => {
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleBackToRequest())
+    expect(result.current.gameState.screen).toBe('home')
+
+    act(() => result.current.handleOpenDifficulty())
+    act(() => result.current.handleSelectDifficulty('easy'))
+    act(() => result.current.handleBackToRequest())
+    expect(result.current.gameState.screen).toBe('request')
+  })
+})
+
 describe('useGameState: 難易度ごとのコイン', () => {
   it.each([
     ['easy', 10],

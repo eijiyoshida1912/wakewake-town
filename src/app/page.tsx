@@ -17,6 +17,8 @@ export default function Home() {
     handleCancelDifficulty,
     handleSelectDifficulty,
     handleAccept,
+    handleBackToDifficulty,
+    handleBackToRequest,
     handleComplete,
     handleRewardDone,
     handleOpenShop,
@@ -36,10 +38,10 @@ export default function Home() {
       return <DifficultySelect onSelect={handleSelectDifficulty} onBack={handleCancelDifficulty} />
     case 'request':
       if (!gameState.currentProblem) return null
-      return <RequestScene problem={gameState.currentProblem} onAccept={handleAccept} />
+      return <RequestScene problem={gameState.currentProblem} onAccept={handleAccept} onBack={handleBackToDifficulty} />
     case 'division':
       if (!gameState.currentProblem) return null
-      return <LongDivisionGame problem={gameState.currentProblem} onComplete={handleComplete} />
+      return <LongDivisionGame problem={gameState.currentProblem} onComplete={handleComplete} onBack={handleBackToRequest} />
     case 'reward':
       if (!gameState.rewardItem || !gameState.currentProblem) return null
       return (

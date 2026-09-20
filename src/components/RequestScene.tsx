@@ -12,9 +12,10 @@ const BG_COLORS: Record<string, string> = {
 interface RequestSceneProps {
   problem: Problem
   onAccept: () => void
+  onBack: () => void
 }
 
-export default function RequestScene({ problem, onAccept }: RequestSceneProps) {
+export default function RequestScene({ problem, onAccept, onBack }: RequestSceneProps) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-100 to-blue-50 flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm flex flex-col items-center gap-6">
@@ -37,6 +38,12 @@ export default function RequestScene({ problem, onAccept }: RequestSceneProps) {
           className="w-full bg-green-400 hover:bg-green-500 text-white font-bold text-xl py-5 rounded-2xl shadow-lg transition-all active:scale-95"
         >
           お手伝いする！ 🙌
+        </button>
+        <button
+          onClick={onBack}
+          className="w-full rounded-2xl bg-gray-200 py-3 text-lg font-bold text-gray-600 shadow transition-all hover:bg-gray-300 active:scale-95"
+        >
+          ← もどる
         </button>
       </div>
     </div>
