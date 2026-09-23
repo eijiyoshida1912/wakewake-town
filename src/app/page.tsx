@@ -9,6 +9,7 @@ import LongDivisionGame from '@/components/LongDivisionGame'
 import RewardScreen from '@/components/RewardScreen'
 import ShopScreen from '@/components/ShopScreen'
 import MilestoneScreen from '@/components/MilestoneScreen'
+import RankingScreen from '@/components/RankingScreen'
 
 export default function Home() {
   const {
@@ -28,6 +29,8 @@ export default function Home() {
     handleBuy,
     handleDismissPurchase,
     handleMilestoneDone,
+    handleOpenRanking,
+    handleCloseRanking,
   } = useGameState()
 
   // ブラウザの「戻る」は、画面の「もどる」と同じ動きにする。
@@ -42,6 +45,8 @@ export default function Home() {
         return gameState.divisionSolved ? null : handleBackToRequest
       case 'shop':
         return handleCloseShop
+      case 'ranking':
+        return handleCloseRanking
       default:
         return null
     }
@@ -53,7 +58,14 @@ export default function Home() {
 
   switch (gameState.screen) {
     case 'home':
-      return <TownHome gameState={gameState} onStart={handleOpenDifficulty} onOpenShop={handleOpenShop} />
+      return (
+        <TownHome
+          gameState={gameState}
+          onStart={handleOpenDifficulty}
+          onOpenShop={handleOpenShop}
+          onOpenRanking={handleOpenRanking}
+        />
+      )
     case 'difficulty':
       return <DifficultySelect onSelect={handleSelectDifficulty} onBack={handleCancelDifficulty} />
     case 'request':
@@ -97,6 +109,8 @@ export default function Home() {
           onFinish={handleMilestoneDone}
         />
       )
+    case 'ranking':
+      return <RankingScreen problemsSolved={gameState.problemsSolved} onBack={handleCloseRanking} />
     default:
       return null
   }

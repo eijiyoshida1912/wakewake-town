@@ -205,6 +205,14 @@ export function useGameState() {
     setGameState(prev => ({ ...prev, screen: 'home' }))
   }, [])
 
+  const handleOpenRanking = useCallback(() => {
+    setGameState(prev => ({ ...prev, screen: 'ranking' }))
+  }, [])
+
+  const handleCloseRanking = useCallback(() => {
+    setGameState(prev => ({ ...prev, screen: 'home' }))
+  }, [])
+
   return {
     gameState,
     hydrated,
@@ -222,5 +230,7 @@ export function useGameState() {
     handleBuy,
     handleDismissPurchase,
     handleMilestoneDone,
+    handleOpenRanking,
+    handleCloseRanking,
   }
 }

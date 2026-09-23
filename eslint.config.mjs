@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // worker/ は別プロジェクト（Cloudflare Workers、Next.jsのルールは対象外）
+    "worker/**",
   ]),
 ]);
 

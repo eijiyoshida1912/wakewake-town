@@ -8,9 +8,10 @@ interface TownHomeProps {
   gameState: GameState
   onStart: () => void
   onOpenShop: () => void
+  onOpenRanking: () => void
 }
 
-export default function TownHome({ gameState, onStart, onOpenShop }: TownHomeProps) {
+export default function TownHome({ gameState, onStart, onOpenShop, onOpenRanking }: TownHomeProps) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-200 to-green-200 flex flex-col">
       <div className="bg-white/80 backdrop-blur px-4 py-3 flex justify-between items-center shadow-sm">
@@ -68,6 +69,13 @@ export default function TownHome({ gameState, onStart, onOpenShop }: TownHomePro
           {canAffordAny(gameState.coins, gameState.items) && (
             <span className="ml-2 rounded-full bg-red-500 px-2 py-0.5 text-xs text-white">かえるものがあるよ！</span>
           )}
+        </button>
+
+        <button
+          onClick={onOpenRanking}
+          className="w-full bg-indigo-300 hover:bg-indigo-400 text-indigo-900 font-bold text-xl py-4 rounded-2xl shadow-lg transition-all active:scale-95 border-b-4 border-indigo-500"
+        >
+          🏆 ランキング
         </button>
 
         {gameState.problemsSolved > 0 && (
