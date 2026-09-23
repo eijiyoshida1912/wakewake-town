@@ -17,22 +17,41 @@ interface SaveData {
   problemsSolved: number
   solvedToday: number
   solvedDate: string
+  totalCoinsEarned: number
 }
 
-const EMPTY_SAVE: SaveData = { coins: 0, items: [], problemsSolved: 0, solvedToday: 0, solvedDate: '' }
+const EMPTY_SAVE: SaveData = {
+  coins: 0,
+  items: [],
+  problemsSolved: 0,
+  solvedToday: 0,
+  solvedDate: '',
+  totalCoinsEarned: 0,
+}
+
+/** 1問でもらえる、いちばん少ないコイン */
+const MIN_COINS_PER_PROBLEM = Math.min(...Object.values(DIFFICULTIES).map(d => d.coins))
 
 function loadSaveData(): SaveData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return EMPTY_SAVE
     const parsed = JSON.parse(raw)
+    const coins = typeof parsed.coins === 'number' ? parsed.coins : 0
+    const problemsSolved = typeof parsed.problemsSolved === 'number' ? parsed.problemsSolved : 0
     return {
-      coins: typeof parsed.coins === 'number' ? parsed.coins : 0,
+      coins,
       items: Array.isArray(parsed.items) ? parsed.items : [],
-      problemsSolved: typeof parsed.problemsSolved === 'number' ? parsed.problemsSolved : 0,
+      problemsSolved,
       // 前のバージョンの保存データには、きょうの数はない（0 から始める）
       solvedToday: typeof parsed.solvedToday === 'number' ? parsed.solvedToday : 0,
       solvedDate: typeof parsed.solvedDate === 'string' ? parsed.solvedDate : '',
+      // 前のバージョンの保存データには、もらったコインの合計はない。実際より多くならないよう、
+      // 「いま持っているコイン」と「解いた数 × いちばん少ないコイン」の大きいほうから始める
+      totalCoinsEarned:
+        typeof parsed.totalCoinsEarned === 'number'
+          ? parsed.totalCoinsEarned
+          : Math.max(coins, problemsSolved * MIN_COINS_PER_PROBLEM),
     }
   } catch {
     return EMPTY_SAVE
@@ -54,6 +73,7 @@ export function useGameState() {
     problemsSolved: 0,
     solvedToday: 0,
     solvedDate: '',
+    totalCoinsEarned: 0,
     screen: 'home',
     currentProblem: null,
     rewardItem: null,
@@ -79,6 +99,7 @@ export function useGameState() {
       problemsSolved: gameState.problemsSolved,
       solvedToday: gameState.solvedToday,
       solvedDate: gameState.solvedDate,
+      totalCoinsEarned: gameState.totalCoinsEarned,
     })
   }, [
     hydrated,
@@ -87,6 +108,7 @@ export function useGameState() {
     gameState.problemsSolved,
     gameState.solvedToday,
     gameState.solvedDate,
+    gameState.totalCoinsEarned,
   ])
 
   const handleOpenDifficulty = useCallback(() => {
@@ -151,6 +173,7 @@ export function useGameState() {
       return {
         ...prev,
         coins: prev.coins + coinsEarned,
+        totalCoinsEarned: prev.totalCoinsEarned + coinsEarned,
         items: newItems,
         problemsSolved: solved,
         solvedToday,

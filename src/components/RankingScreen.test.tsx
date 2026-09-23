@@ -5,7 +5,7 @@ import { getDeviceId, getNickname, setNickname } from '@/lib/ranking'
 
 const API_URL = 'https://ranking.example.workers.dev'
 
-function mockFetch(ranking: Array<{ rank: number; deviceId: string; nickname: string; problemsSolved: number }>) {
+function mockFetch(ranking: Array<{ rank: number; deviceId: string; nickname: string; problemsSolved: number; totalCoins: number }>) {
   return vi.fn(async (url: string) => {
     if (url.includes('/score')) return { ok: true }
     if (url.includes('/ranking')) return { ok: true, json: async () => ({ ranking }) }
@@ -30,7 +30,7 @@ describe('RankingScreen: バックエンド未設定', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<RankingScreen problemsSolved={3} onBack={() => {}} />)
+    render(<RankingScreen problemsSolved={3} totalCoins={45} onBack={() => {}} />)
     expect(screen.getByText('ランキングはまだ準備中だよ')).toBeDefined()
     expect(screen.queryByLabelText('きみの名前')).toBeNull()
     expect(fetchMock).not.toHaveBeenCalled()
@@ -40,10 +40,10 @@ describe('RankingScreen: バックエンド未設定', () => {
 describe('RankingScreen: ニックネーム未登録', () => {
   it('ランキングは読み込むが、スコアはまだ送らない（ニックネームがないため）', async () => {
     vi.stubEnv('NEXT_PUBLIC_RANKING_API_URL', API_URL)
-    const fetchMock = mockFetch([{ rank: 1, deviceId: 'other-device', nickname: 'はなこ', problemsSolved: 20 }])
+    const fetchMock = mockFetch([{ rank: 1, deviceId: 'other-device', nickname: 'はなこ', problemsSolved: 20, totalCoins: 450 }])
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<RankingScreen problemsSolved={3} onBack={() => {}} />)
+    render(<RankingScreen problemsSolved={3} totalCoins={45} onBack={() => {}} />)
     expect(await screen.findByText('はなこ')).toBeDefined()
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock).toHaveBeenCalledWith(`${API_URL}/ranking?limit=20`)
@@ -61,7 +61,7 @@ describe('RankingScreen: ニックネーム未登録', () => {
       }
       if (url.includes('/ranking')) {
         const ranking = registered
-          ? [{ rank: 1, deviceId: getDeviceId(), nickname: 'たろう', problemsSolved: 8 }]
+          ? [{ rank: 1, deviceId: getDeviceId(), nickname: 'たろう', problemsSolved: 8, totalCoins: 120 }]
           : []
         return { ok: true, json: async () => ({ ranking }) }
       }
@@ -69,7 +69,7 @@ describe('RankingScreen: ニックネーム未登録', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<RankingScreen problemsSolved={8} onBack={() => {}} />)
+    render(<RankingScreen problemsSolved={8} totalCoins={120} onBack={() => {}} />)
     await screen.findByText('まだだれも登録していないよ')
 
     fireEvent.change(screen.getByLabelText('きみの名前'), { target: { value: 'たろう' } })
@@ -81,7 +81,7 @@ describe('RankingScreen: ニックネーム未登録', () => {
       `${API_URL}/score`,
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ deviceId: getDeviceId(), nickname: 'たろう', problemsSolved: 8 }),
+        body: JSON.stringify({ deviceId: getDeviceId(), nickname: 'たろう', problemsSolved: 8, totalCoins: 120 }),
       }),
     )
     // 自分の行には「(きみ)」の印が付く
@@ -92,26 +92,26 @@ describe('RankingScreen: ニックネーム未登録', () => {
     vi.stubEnv('NEXT_PUBLIC_RANKING_API_URL', API_URL)
     vi.stubGlobal('fetch', mockFetch([]))
 
-    render(<RankingScreen problemsSolved={3} onBack={() => {}} />)
+    render(<RankingScreen problemsSolved={3} totalCoins={45} onBack={() => {}} />)
     expect(screen.getByRole('button', { name: 'とうろく' })).toHaveProperty('disabled', true)
   })
 })
 
 describe('RankingScreen: ニックネーム登録ずみ', () => {
-  it('画面を開くと、まず今の解いた数を送ってからランキングを表示する', async () => {
+  it('画面を開くと、まず今の解いた数ともらったコインの合計を送ってからランキングを表示する', async () => {
     setNickname('たろう')
     const myId = getDeviceId()
     vi.stubEnv('NEXT_PUBLIC_RANKING_API_URL', API_URL)
-    const fetchMock = mockFetch([{ rank: 1, deviceId: myId, nickname: 'たろう', problemsSolved: 12 }])
+    const fetchMock = mockFetch([{ rank: 1, deviceId: myId, nickname: 'たろう', problemsSolved: 12, totalCoins: 200 }])
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<RankingScreen problemsSolved={12} onBack={() => {}} />)
+    render(<RankingScreen problemsSolved={12} totalCoins={200} onBack={() => {}} />)
 
     expect(await screen.findByText('たろう')).toBeDefined()
     expect(fetchMock).toHaveBeenCalledWith(
       `${API_URL}/score`,
       expect.objectContaining({
-        body: JSON.stringify({ deviceId: myId, nickname: 'たろう', problemsSolved: 12 }),
+        body: JSON.stringify({ deviceId: myId, nickname: 'たろう', problemsSolved: 12, totalCoins: 200 }),
       }),
     )
     expect(fetchMock).toHaveBeenCalledWith(`${API_URL}/ranking?limit=20`)
@@ -120,12 +120,40 @@ describe('RankingScreen: ニックネーム登録ずみ', () => {
   })
 })
 
+describe('RankingScreen: ポイントの表示', () => {
+  it('ランキングの各行には、解いた数ではなく、もらったコインの合計が出る', async () => {
+    vi.stubEnv('NEXT_PUBLIC_RANKING_API_URL', API_URL)
+    vi.stubGlobal(
+      'fetch',
+      mockFetch([
+        { rank: 1, deviceId: 'device-1', nickname: 'はなこ', problemsSolved: 15, totalCoins: 450 },
+        { rank: 2, deviceId: 'device-2', nickname: 'じろう', problemsSolved: 30, totalCoins: 300 },
+      ]),
+    )
+
+    render(<RankingScreen problemsSolved={3} totalCoins={45} onBack={() => {}} />)
+
+    const rows = await screen.findAllByRole('listitem')
+    expect(rows[0].textContent).toContain('はなこ')
+    expect(rows[0].textContent).toContain('🪙 450')
+    expect(rows[1].textContent).toContain('じろう')
+    expect(rows[1].textContent).toContain('🪙 300')
+    expect(rows[1].textContent).not.toContain('⭐')
+  })
+
+  it('画面の上には、自分のもらったコインの合計が出る', () => {
+    vi.stubEnv('NEXT_PUBLIC_RANKING_API_URL', '')
+    render(<RankingScreen problemsSolved={3} totalCoins={45} onBack={() => {}} />)
+    expect(screen.getByText('🪙 45')).toBeDefined()
+  })
+})
+
 describe('RankingScreen: 通信エラー', () => {
   it('取得に失敗したら、エラーの案内を出す', async () => {
     vi.stubEnv('NEXT_PUBLIC_RANKING_API_URL', API_URL)
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network error')))
 
-    render(<RankingScreen problemsSolved={3} onBack={() => {}} />)
+    render(<RankingScreen problemsSolved={3} totalCoins={45} onBack={() => {}} />)
     expect(await screen.findByText('つながらなかったよ。もう一度ためしてね')).toBeDefined()
   })
 })
@@ -136,7 +164,7 @@ describe('RankingScreen: もどる', () => {
     vi.stubGlobal('fetch', mockFetch([]))
     const onBack = vi.fn()
 
-    render(<RankingScreen problemsSolved={3} onBack={onBack} />)
+    render(<RankingScreen problemsSolved={3} totalCoins={45} onBack={onBack} />)
     await screen.findByText('まだだれも登録していないよ')
     fireEvent.click(screen.getByRole('button', { name: '← もどる' }))
     expect(onBack).toHaveBeenCalledOnce()

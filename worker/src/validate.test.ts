@@ -1,23 +1,30 @@
 import { describe, it, expect } from 'vitest'
-import { validateScoreSubmission, clampRankingLimit, MAX_NICKNAME_LENGTH, MAX_PROBLEMS_SOLVED } from './validate'
+import {
+  validateScoreSubmission,
+  clampRankingLimit,
+  MAX_NICKNAME_LENGTH,
+  MAX_PROBLEMS_SOLVED,
+  MAX_TOTAL_COINS,
+} from './validate'
 
 const VALID_DEVICE_ID = 'a'.repeat(36) // UUID相当の長さ
 const validBody = (overrides: Record<string, unknown> = {}) => ({
   deviceId: VALID_DEVICE_ID,
   nickname: 'たろう',
   problemsSolved: 10,
+  totalCoins: 150,
   ...overrides,
 })
 
 describe('validateScoreSubmission: 正常な入力', () => {
-  it('デバイスID・ニックネーム・解いた数がそろっていれば通る', () => {
+  it('デバイスID・ニックネーム・解いた数・もらったコインの合計がそろっていれば通る', () => {
     const result = validateScoreSubmission(validBody())
-    expect(result).toEqual({ ok: true, value: { deviceId: VALID_DEVICE_ID, nickname: 'たろう', problemsSolved: 10 } })
+    expect(result).toEqual({ ok: true, value: { deviceId: VALID_DEVICE_ID, nickname: 'たろう', problemsSolved: 10, totalCoins: 150 } })
   })
 
   it('ニックネームの前後の空白は取り除かれる', () => {
     const result = validateScoreSubmission(validBody({ nickname: '  はなこ  ' }))
-    expect(result).toEqual({ ok: true, value: { deviceId: VALID_DEVICE_ID, nickname: 'はなこ', problemsSolved: 10 } })
+    expect(result).toEqual({ ok: true, value: { deviceId: VALID_DEVICE_ID, nickname: 'はなこ', problemsSolved: 10, totalCoins: 150 } })
   })
 
   it('解いた数が0でも通る（まだ1問も解いていない端末の初回登録）', () => {
@@ -123,6 +130,29 @@ describe('validateScoreSubmission: 解いた数が不正', () => {
     expect(validateScoreSubmission(validBody({ problemsSolved: MAX_PROBLEMS_SOLVED + 1 }))).toEqual({
       ok: false,
       error: 'invalid_problems_solved',
+    })
+  })
+})
+
+describe('validateScoreSubmission: もらったコインの合計', () => {
+  it('0でも通る（まだ1問も解いていない端末の初回登録）', () => {
+    expect(validateScoreSubmission(validBody({ problemsSolved: 0, totalCoins: 0 })).ok).toBe(true)
+  })
+
+  it(`ちょうど上限（${MAX_TOTAL_COINS}）なら通る（境界値）`, () => {
+    expect(validateScoreSubmission(validBody({ totalCoins: MAX_TOTAL_COINS })).ok).toBe(true)
+  })
+
+  it.each([
+    ['欠けている（前のバージョンのアプリから送られた）', undefined],
+    ['数値でない', '150'],
+    ['整数でない', 1.5],
+    ['負の数', -1],
+    [`上限より1大きい（${MAX_TOTAL_COINS + 1}）`, MAX_TOTAL_COINS + 1],
+  ])('%s ときは弾く', (_label, totalCoins) => {
+    expect(validateScoreSubmission(validBody({ totalCoins }))).toEqual({
+      ok: false,
+      error: 'invalid_total_coins',
     })
   })
 })

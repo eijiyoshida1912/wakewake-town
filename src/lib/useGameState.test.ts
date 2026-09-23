@@ -435,6 +435,7 @@ describe('useGameState: localStorage への保存と復元', () => {
       problemsSolved: 1,
       solvedToday: 1,
       solvedDate: '2026-09-20',
+      totalCoinsEarned: 15,
     })
   })
 
@@ -685,6 +686,8 @@ describe('useGameState: お店', () => {
       problemsSolved: 0,
       solvedToday: 0,
       solvedDate: '',
+      // 前の形式の保存データ（コイン 100）から見積もった合計。買い物をしても減らない
+      totalCoinsEarned: 100,
     })
     first.unmount()
     const second = renderHook(() => useGameState())
@@ -698,5 +701,76 @@ describe('useGameState: お店', () => {
     const { result } = renderHook(() => useGameState())
     playRound(result, 'easy')
     expect(result.current.gameState).toMatchObject({ screen: 'reward', rewardItem: 'いす' })
+  })
+})
+
+describe('useGameState: これまでにもらったコイン（ランキングのポイント）', () => {
+  it('最初は 0', () => {
+    const { result } = renderHook(() => useGameState())
+    expect(result.current.gameState.totalCoinsEarned).toBe(0)
+  })
+
+  it('難易度どおりのコインが足されていく（10 + 15 + 30 = 55）', () => {
+    const { result } = renderHook(() => useGameState())
+    playRound(result, 'easy')
+    expect(result.current.gameState.totalCoinsEarned).toBe(10)
+    playRound(result, 'normal')
+    expect(result.current.gameState.totalCoinsEarned).toBe(25)
+    playRound(result, 'challenge')
+    expect(result.current.gameState.totalCoinsEarned).toBe(55)
+  })
+
+  it('お店で買い物をすると持っているコインは減るが、もらったコインの合計は減らない', () => {
+    const { result } = renderHook(() => useGameState())
+    for (let i = 0; i < 3; i++) playRound(result, 'challenge')
+    act(() => result.current.handleOpenShop())
+    act(() => result.current.handleBuy('いす'))
+    expect(result.current.gameState).toMatchObject({ coins: 10, totalCoinsEarned: 90 })
+  })
+
+  it('筆算画面以外で完了を呼んでも、もらったコインの合計は増えない', () => {
+    const { result } = renderHook(() => useGameState())
+    act(() => result.current.handleComplete())
+    expect(result.current.gameState.totalCoinsEarned).toBe(0)
+  })
+
+  it('保存したもらったコインの合計が、次回の起動で復元される', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ coins: 5, items: [], problemsSolved: 3, totalCoinsEarned: 75 }),
+    )
+    const { result } = renderHook(() => useGameState())
+    expect(result.current.gameState.totalCoinsEarned).toBe(75)
+    playRound(result, 'challenge')
+    expect(result.current.gameState.totalCoinsEarned).toBe(105)
+  })
+
+  describe('前のバージョンの保存データ（もらったコインの合計がない）は、少なめに見積もって始める', () => {
+    it('持っているコインのほうが多ければ、持っているコインから（コイン 50・解いた数 3 → 50）', () => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ coins: 50, items: [], problemsSolved: 3 }))
+      const { result } = renderHook(() => useGameState())
+      expect(result.current.gameState.totalCoinsEarned).toBe(50)
+    })
+
+    it('買い物でコインが減っていれば、解いた数 × いちばん少ないコイン（10）から（コイン 20・解いた数 4 → 40）', () => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ coins: 20, items: ['いす'], problemsSolved: 4 }))
+      const { result } = renderHook(() => useGameState())
+      expect(result.current.gameState.totalCoinsEarned).toBe(40)
+    })
+
+    it('どちらも同じなら、その数（コイン 30・解いた数 3 → 30）', () => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ coins: 30, items: [], problemsSolved: 3 }))
+      const { result } = renderHook(() => useGameState())
+      expect(result.current.gameState.totalCoinsEarned).toBe(30)
+    })
+
+    it('もらったコインの合計が数でなければ（壊れていれば）、同じように見積もる', () => {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ coins: 20, items: [], problemsSolved: 4, totalCoinsEarned: '999' }),
+      )
+      const { result } = renderHook(() => useGameState())
+      expect(result.current.gameState.totalCoinsEarned).toBe(40)
+    })
   })
 })

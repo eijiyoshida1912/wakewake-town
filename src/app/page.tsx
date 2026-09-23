@@ -110,7 +110,13 @@ export default function Home() {
         />
       )
     case 'ranking':
-      return <RankingScreen problemsSolved={gameState.problemsSolved} onBack={handleCloseRanking} />
+      return (
+        <RankingScreen
+          problemsSolved={gameState.problemsSolved}
+          totalCoins={gameState.totalCoinsEarned}
+          onBack={handleCloseRanking}
+        />
+      )
     default:
       return null
   }

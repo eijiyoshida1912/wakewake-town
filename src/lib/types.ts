@@ -33,6 +33,8 @@ export interface GameState {
   solvedToday: number
   /** solvedToday を数えた日（「2026-09-20」の形。まだ数えていなければ空） */
   solvedDate: string
+  /** これまでにもらったコインの合計。お店で使っても減らない（ランキングのポイント） */
+  totalCoinsEarned: number
   screen: 'home' | 'difficulty' | 'request' | 'division' | 'reward' | 'milestone' | 'shop' | 'ranking'
   currentProblem: Problem | null
   /** お祝い画面（reward）で見せる、いまもらったアイテム */

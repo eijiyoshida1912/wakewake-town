@@ -8,6 +8,13 @@ export interface RankingEntry {
   deviceId: string
   nickname: string
   problemsSolved: number
+  /** これまでにもらったコインの合計（ランキングのポイント） */
+  totalCoins: number
+}
+
+export interface Score {
+  problemsSolved: number
+  totalCoins: number
 }
 
 /** ランキングAPIのURL。設定されていなければ null（バックエンドがまだ用意されていない状態） */
@@ -65,11 +72,11 @@ export function setNickname(nickname: string): void {
 }
 
 /**
- * いまの解いた数を、ランキングのバックエンドに登録する。
+ * いまの解いた数と、これまでにもらったコインの合計を、ランキングのバックエンドに登録する。
  * バックエンドが未設定・ニックネーム未設定・通信に失敗、のどれでも例外は投げない
  * （ランキング登録の失敗でゲームが止まってはいけないため）。成功したかを真偽値で返す。
  */
-export async function submitScore(problemsSolved: number): Promise<boolean> {
+export async function submitScore({ problemsSolved, totalCoins }: Score): Promise<boolean> {
   const apiUrl = getApiUrl()
   const nickname = getNickname()
   if (!apiUrl || nickname.length === 0) return false
@@ -77,7 +84,7 @@ export async function submitScore(problemsSolved: number): Promise<boolean> {
     const response = await fetch(`${apiUrl}/score`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deviceId: getDeviceId(), nickname, problemsSolved }),
+      body: JSON.stringify({ deviceId: getDeviceId(), nickname, problemsSolved, totalCoins }),
     })
     return response.ok
   } catch {

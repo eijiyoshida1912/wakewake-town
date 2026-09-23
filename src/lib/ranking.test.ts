@@ -77,7 +77,7 @@ describe('submitScore', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
-    expect(await submitScore(5)).toBe(false)
+    expect(await submitScore({ problemsSolved: 5, totalCoins: 80 })).toBe(false)
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
@@ -86,22 +86,22 @@ describe('submitScore', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
-    expect(await submitScore(5)).toBe(false)
+    expect(await submitScore({ problemsSolved: 5, totalCoins: 80 })).toBe(false)
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('設定がそろっていれば、/score にデバイスID・ニックネーム・解いた数を送る', async () => {
+  it('設定がそろっていれば、/score にデバイスID・ニックネーム・解いた数・もらったコインの合計を送る', async () => {
     vi.stubEnv('NEXT_PUBLIC_RANKING_API_URL', API_URL)
     setNickname('たろう')
     const deviceId = getDeviceId()
     const fetchMock = vi.fn().mockResolvedValue({ ok: true })
     vi.stubGlobal('fetch', fetchMock)
 
-    expect(await submitScore(7)).toBe(true)
+    expect(await submitScore({ problemsSolved: 7, totalCoins: 150 })).toBe(true)
     expect(fetchMock).toHaveBeenCalledWith(`${API_URL}/score`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deviceId, nickname: 'たろう', problemsSolved: 7 }),
+      body: JSON.stringify({ deviceId, nickname: 'たろう', problemsSolved: 7, totalCoins: 150 }),
     })
   })
 
@@ -110,7 +110,7 @@ describe('submitScore', () => {
     setNickname('たろう')
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
 
-    expect(await submitScore(7)).toBe(false)
+    expect(await submitScore({ problemsSolved: 7, totalCoins: 150 })).toBe(false)
   })
 
   it('通信自体が失敗しても false（例外は投げない）', async () => {
@@ -121,7 +121,7 @@ describe('submitScore', () => {
       vi.fn().mockRejectedValue(new Error('network error')),
     )
 
-    await expect(submitScore(7)).resolves.toBe(false)
+    await expect(submitScore({ problemsSolved: 7, totalCoins: 150 })).resolves.toBe(false)
   })
 })
 
@@ -138,8 +138,8 @@ describe('fetchRanking', () => {
   it('ランキングの配列を返す', async () => {
     vi.stubEnv('NEXT_PUBLIC_RANKING_API_URL', API_URL)
     const ranking = [
-      { rank: 1, deviceId: 'device-1', nickname: 'たろう', problemsSolved: 30 },
-      { rank: 2, deviceId: 'device-2', nickname: 'はなこ', problemsSolved: 20 },
+      { rank: 1, deviceId: 'device-1', nickname: 'たろう', problemsSolved: 30, totalCoins: 600 },
+      { rank: 2, deviceId: 'device-2', nickname: 'はなこ', problemsSolved: 20, totalCoins: 450 },
     ]
     vi.stubGlobal(
       'fetch',

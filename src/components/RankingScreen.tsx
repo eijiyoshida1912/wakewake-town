@@ -15,12 +15,14 @@ import {
 interface RankingScreenProps {
   /** いまの通算で解いた問題数。ランキングに登録する値 */
   problemsSolved: number
+  /** これまでにもらったコインの合計。ランキングのポイントとして登録・表示する値 */
+  totalCoins: number
   onBack: () => void
 }
 
 type LoadState = 'not-configured' | 'loading' | 'loaded' | 'error'
 
-export default function RankingScreen({ problemsSolved, onBack }: RankingScreenProps) {
+export default function RankingScreen({ problemsSolved, totalCoins, onBack }: RankingScreenProps) {
   const [nicknameInput, setNicknameInput] = useState(() => getNickname())
   const [hasNickname, setHasNickname] = useState(() => getNickname().length > 0)
   const [ranking, setRanking] = useState<RankingEntry[]>([])
@@ -42,13 +44,13 @@ export default function RankingScreen({ problemsSolved, onBack }: RankingScreenP
   }, [])
 
   useEffect(() => {
-    // すでにニックネームを決めている端末は、この画面を開くたびに最新の解いた数を送っておく
+    // すでにニックネームを決めている端末は、この画面を開くたびに最新のスコアを送っておく
     if (getNickname().length > 0) {
-      void submitScore(problemsSolved).then(() => load())
+      void submitScore({ problemsSolved, totalCoins }).then(() => load())
     } else {
       void load()
     }
-    // 画面を開いたときの1回だけでよい（problemsSolvedの変化のたびに送り直す必要はない）
+    // 画面を開いたときの1回だけでよい（スコアの変化のたびに送り直す必要はない）
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -58,9 +60,9 @@ export default function RankingScreen({ problemsSolved, onBack }: RankingScreenP
     setNickname(trimmed)
     setNicknameInput(trimmed)
     setHasNickname(true)
-    await submitScore(problemsSolved)
+    await submitScore({ problemsSolved, totalCoins })
     await load()
-  }, [nicknameInput, problemsSolved, load])
+  }, [nicknameInput, problemsSolved, totalCoins, load])
 
   const myDeviceId = hasNickname ? getDeviceId() : null
 
@@ -69,7 +71,7 @@ export default function RankingScreen({ problemsSolved, onBack }: RankingScreenP
       <div className="bg-white/80 backdrop-blur px-4 py-3 flex justify-between items-center shadow-sm">
         <h1 className="text-xl font-bold text-indigo-700">🏆 ランキング</h1>
         <span className="bg-indigo-100 border border-indigo-300 rounded-full px-3 py-1 text-sm font-bold text-indigo-700">
-          ⭐ {problemsSolved}
+          🪙 {totalCoins}
         </span>
       </div>
 
@@ -136,7 +138,7 @@ export default function RankingScreen({ problemsSolved, onBack }: RankingScreenP
                     {entry.nickname}
                     {entry.deviceId === myDeviceId && <span className="ml-1 text-sm text-indigo-500">(きみ)</span>}
                   </span>
-                  <span className="font-bold text-amber-600">⭐ {entry.problemsSolved}</span>
+                  <span className="font-bold text-amber-600">🪙 {entry.totalCoins}</span>
                 </li>
               ))}
             </ol>

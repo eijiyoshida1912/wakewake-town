@@ -9,7 +9,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:init:local": "wrangler d1 execute wakewake-town-ranking --local --file=./schema.sql",
-    "db:init:remote": "wrangler d1 execute wakewake-town-ranking --remote --file=./schema.sql"
+    "db:init:remote": "wrangler d1 execute wakewake-town-ranking --remote --file=./schema.sql",
+    "db:migrate:total-coins:remote": "wrangler d1 execute wakewake-town-ranking --remote --file=./migrations/0001_add_total_coins.sql"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4",

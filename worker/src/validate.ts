@@ -1,5 +1,7 @@
 export const MAX_NICKNAME_LENGTH = 20
 export const MAX_PROBLEMS_SOLVED = 1_000_000
+// 1問でもらえるコインは多くても30なので、解いた数の上限 × 30
+export const MAX_TOTAL_COINS = MAX_PROBLEMS_SOLVED * 30
 export const MIN_DEVICE_ID_LENGTH = 8
 export const MAX_DEVICE_ID_LENGTH = 64
 
@@ -8,12 +10,18 @@ const DEVICE_ID_PATTERN = /^[a-zA-Z0-9-]+$/
 // 改行・タブなどの制御文字は禁止する（絵文字やひらがな・漢字はそのまま許可）
 const CONTROL_CHAR_PATTERN = /[\u0000-\u001f\u007f]/
 
-export type ValidationError = 'invalid_device_id' | 'invalid_nickname' | 'invalid_problems_solved'
+export type ValidationError =
+  | 'invalid_device_id'
+  | 'invalid_nickname'
+  | 'invalid_problems_solved'
+  | 'invalid_total_coins'
 
 export interface ScoreSubmission {
   deviceId: string
   nickname: string
   problemsSolved: number
+  /** これまでにもらったコインの合計（ランキングのポイント） */
+  totalCoins: number
 }
 
 export type ValidationResult = { ok: true; value: ScoreSubmission } | { ok: false; error: ValidationError }
@@ -21,13 +29,13 @@ export type ValidationResult = { ok: true; value: ScoreSubmission } | { ok: fals
 /**
  * スコア登録リクエストの中身を確かめる。
  * 問題なければ、ニックネームの前後の空白を取った値を返す。
- * 不正なら、どこが悪いか（デバイスID・ニックネーム・解いた数のどれか）を返す。
+ * 不正なら、どこが悪いか（デバイスID・ニックネーム・解いた数・もらったコインの合計のどれか）を返す。
  */
 export function validateScoreSubmission(body: unknown): ValidationResult {
   if (typeof body !== 'object' || body === null) {
     return { ok: false, error: 'invalid_nickname' }
   }
-  const { deviceId, nickname, problemsSolved } = body as Record<string, unknown>
+  const { deviceId, nickname, problemsSolved, totalCoins } = body as Record<string, unknown>
 
   if (
     typeof deviceId !== 'string' ||
@@ -59,7 +67,16 @@ export function validateScoreSubmission(body: unknown): ValidationResult {
     return { ok: false, error: 'invalid_problems_solved' }
   }
 
-  return { ok: true, value: { deviceId, nickname: trimmedNickname, problemsSolved } }
+  if (
+    typeof totalCoins !== 'number' ||
+    !Number.isInteger(totalCoins) ||
+    totalCoins < 0 ||
+    totalCoins > MAX_TOTAL_COINS
+  ) {
+    return { ok: false, error: 'invalid_total_coins' }
+  }
+
+  return { ok: true, value: { deviceId, nickname: trimmedNickname, problemsSolved, totalCoins } }
 }
 
 /**
