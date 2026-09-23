@@ -11,3 +11,120 @@
 .animate-shake {
   animation: shake 0.4s ease-in-out;
 }
+
+/* ===== 町のかざりの場面（TownDecorations） =====
+   背景は画像を使わず、グラデーションと図形で描く。
+   大きさは場面の幅に合わせて変わるよう、cqw（場面の幅の1%）で決める */
+.deco-scene {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  container-type: inline-size;
+  border: 3px solid #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+.deco-bg { position: absolute; }
+
+.deco-spot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+.deco-item,
+.deco-empty {
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  cursor: pointer;
+}
+.deco-item {
+  font-size: calc(var(--s, 1) * 8cqw);
+  filter: drop-shadow(0 0.4cqw 0.3cqw rgba(0, 0, 0, 0.18));
+}
+.deco-empty {
+  width: calc(var(--s, 1) * 9cqw);
+  height: calc(var(--s, 1) * 9cqw);
+  border: 0.5cqw dashed rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: calc(var(--s, 1) * 4cqw);
+  font-weight: 800;
+  text-shadow: 0 0 0.6cqw rgba(0, 0, 0, 0.25);
+}
+.deco-item:focus-visible,
+.deco-empty:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .deco-item { animation: deco-pop 0.35s ease-out both; }
+}
+@keyframes deco-pop {
+  from { transform: scale(0.6); }
+  to { transform: scale(1); }
+}
+.deco-bubble {
+  position: absolute;
+  z-index: 200;
+  transform: translate(-50%, -100%);
+  padding: 0.8cqw 2.4cqw;
+  border: 2px solid #fbbf24;
+  border-radius: 999px;
+  background: #fff;
+  color: #b45309;
+  font-size: max(11px, 3.2cqw);
+  font-weight: 800;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* リビング（かぐ） */
+.deco-scene.living .wall { inset: 0 0 38% 0; background: repeating-linear-gradient(90deg, #fde2e4 0 6cqw, #fbd5d9 6cqw 12cqw); }
+.deco-scene.living .floor { inset: 62% 0 0 0; background: repeating-linear-gradient(90deg, #e7b98a 0 10cqw, #dcaa78 10cqw 10.4cqw); }
+.deco-scene.living .base { left: 0; right: 0; top: 60.5%; height: 1.8%; background: #f5f5f4; }
+.deco-scene.living .window { left: 24%; top: 9%; width: 20%; height: 28%; background: linear-gradient(#7dd3fc, #e0f2fe); border: 1.2cqw solid #fff; border-radius: 1cqw; }
+.deco-scene.living .window::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 0.8cqw; transform: translateX(-50%); background: #fff; }
+.deco-scene.living .shelf { left: 79%; top: 42%; width: 18%; height: 1.6%; background: #a16207; border-radius: 0.4cqw; }
+.deco-scene.living .rug { left: 30%; top: 72%; width: 42%; height: 20%; background: radial-gradient(ellipse at center, #fca5a5 0 55%, #f87171 56% 62%, #fca5a5 63%); border-radius: 50%; opacity: 0.85; }
+
+/* にわ（しょくぶつ） */
+.deco-scene.garden .sky { inset: 0 0 45% 0; background: linear-gradient(#7dd3fc, #e0f2fe); }
+.deco-scene.garden .sun { right: 6%; top: 7%; width: 12cqw; height: 12cqw; border-radius: 50%; background: #fde047; box-shadow: 0 0 0 2cqw rgba(253, 224, 71, 0.35); }
+.deco-scene.garden .fence { left: 0; right: 0; top: 40%; height: 14%; background: repeating-linear-gradient(90deg, #fff 0 3cqw, transparent 3cqw 6cqw); }
+.deco-scene.garden .rail { left: 0; right: 0; top: 44%; height: 2%; background: #fff; }
+.deco-scene.garden .grass { inset: 52% 0 0 0; background: linear-gradient(#86efac, #4ade80); }
+.deco-scene.garden .path { left: 42%; top: 52%; width: 16%; height: 48%; background: #fef3c7; clip-path: polygon(35% 0, 65% 0, 100% 100%, 0 100%); opacity: 0.9; }
+
+/* こどもべや（おもちゃ） */
+.deco-scene.kids .wall { inset: 0 0 36% 0; background: radial-gradient(circle, #fff 0 0.6cqw, transparent 0.7cqw) 0 0 / 8cqw 8cqw, #bfdbfe; }
+.deco-scene.kids .floor { inset: 64% 0 0 0; background: #a7f3d0; }
+.deco-scene.kids .base { left: 0; right: 0; top: 62.5%; height: 1.8%; background: #fff; }
+.deco-scene.kids .window { left: 28%; top: 8%; width: 22%; height: 28%; background: linear-gradient(#93c5fd, #dbeafe); border: 1.2cqw solid #fff; border-radius: 12cqw 12cqw 1cqw 1cqw; }
+.deco-scene.kids .hook { left: 10.5%; top: 16%; width: 3cqw; height: 3cqw; border-radius: 50%; background: #a16207; }
+.deco-scene.kids .mat { left: 38%; top: 74%; width: 40%; height: 22%; border-radius: 3cqw; background: repeating-conic-gradient(#fde68a 0 25%, #fca5a5 0 50%) 0 0 / 8cqw 8cqw; opacity: 0.75; }
+
+/* ダイニング（たべもの） */
+.deco-scene.dining .wall { inset: 0 0 30% 0; background: linear-gradient(90deg, rgba(255, 255, 255, 0.6) 0.3cqw, transparent 0.3cqw) 0 0 / 7cqw 7cqw, linear-gradient(rgba(255, 255, 255, 0.6) 0.3cqw, transparent 0.3cqw) 0 0 / 7cqw 7cqw, #fef9c3; }
+.deco-scene.dining .floor { inset: 70% 0 0 0; background: repeating-conic-gradient(#fafaf9 0 25%, #d6d3d1 0 50%) 0 0 / 10cqw 10cqw; }
+.deco-scene.dining .shelf { left: 30%; top: 31%; width: 40%; height: 2.4%; background: #a16207; border-radius: 0.4cqw; }
+.deco-scene.dining .table { left: 6%; top: 60%; width: 88%; height: 5%; background: #b45309; border-radius: 1cqw; }
+.deco-scene.dining .cloth { left: 6%; top: 58%; width: 88%; height: 4%; background: repeating-linear-gradient(90deg, #fecaca 0 4cqw, #fff 4cqw 8cqw); border-radius: 1cqw 1cqw 0 0; }
+.deco-scene.dining .leg1,
+.deco-scene.dining .leg2 { top: 65%; width: 2.4%; height: 12%; background: #92400e; }
+.deco-scene.dining .leg1 { left: 12%; }
+.deco-scene.dining .leg2 { right: 12%; }
+
+/* まちとそら（のりもの） */
+.deco-scene.street .sky { inset: 0 0 46% 0; background: linear-gradient(#60a5fa, #bfdbfe); }
+.deco-scene.street .cloud { width: 16cqw; height: 5cqw; border-radius: 5cqw; background: #fff; opacity: 0.9; }
+.deco-scene.street .cloud.c1 { left: 6%; top: 8%; }
+.deco-scene.street .cloud.c2 { left: 44%; top: 28%; width: 12cqw; }
+.deco-scene.street .hill { left: -10%; right: -10%; top: 38%; height: 20%; background: #86efac; border-radius: 50% 50% 0 0; }
+.deco-scene.street .ground { inset: 50% 0 0 0; background: #86efac; }
+.deco-scene.street .rails { left: 0; right: 0; top: 59%; height: 1.6%; background: repeating-linear-gradient(90deg, #78716c 0 1cqw, transparent 1cqw 3cqw); border-bottom: 0.5cqw solid #57534e; }
+.deco-scene.street .road { left: 0; right: 0; top: 64%; height: 22%; background: #9ca3af; }
+.deco-scene.street .lane { left: 0; right: 0; top: 74.6%; height: 0.8%; background: repeating-linear-gradient(90deg, #fff 0 6cqw, transparent 6cqw 11cqw); }
+.deco-scene.street .river { left: 66%; right: 0; top: 86%; bottom: 0; background: linear-gradient(#38bdf8, #0ea5e9); border-radius: 6cqw 0 0 0; }
