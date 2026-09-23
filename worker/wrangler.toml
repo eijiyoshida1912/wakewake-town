@@ -5,10 +5,9 @@ compatibility_date = "2025-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "wakewake-town-ranking"
-# `npx wrangler d1 create wakewake-town-ranking` を実行すると表示されるIDに書き換える
-database_id = "REPLACE_WITH_YOUR_DATABASE_ID"
+database_id = "51a2a723-ed0c-4c74-b199-63f65c5b96e4"
 
 [vars]
 # ランキングを呼び出してよいフロントのオリジン（カンマ区切りで複数指定可）。
 # 例: "http://localhost:3000,https://wakewake-town.pages.dev"
-ALLOWED_ORIGIN = "http://localhost:3000"
+ALLOWED_ORIGIN = "http://localhost:3000,https://wakewake-town.vercel.app"
